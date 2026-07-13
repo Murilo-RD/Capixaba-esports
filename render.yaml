@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: capixaba-es
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev && npm run build:render
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: NITRO_PRESET
+        value: node-server
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_PROJECT_ID
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_SUPABASE_PROJECT_ID
+        sync: false
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: DISCORD_URL
+        sync: false
+      - key: TRN_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_GATEWAY_URL
+        sync: false
+      - key: EMAIL_GATEWAY_BEARER
+        sync: false
+      - key: EMAIL_CONNECTION_API_KEY
+        sync: false

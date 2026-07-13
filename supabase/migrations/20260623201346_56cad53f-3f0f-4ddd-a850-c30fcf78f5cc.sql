@@ -1,0 +1,1 @@
+COMMENT ON TABLE public.weekly_reports IS 'Relatórios semanais de jogadores';

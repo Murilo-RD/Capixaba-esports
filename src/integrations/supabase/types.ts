@@ -157,6 +157,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email: string | null
           id: string
           meeting_at: string | null
           mmr_1v1: number | null
@@ -174,6 +175,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           id: string
           meeting_at?: string | null
           mmr_1v1?: number | null
@@ -191,6 +193,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           meeting_at?: string | null
           mmr_1v1?: number | null

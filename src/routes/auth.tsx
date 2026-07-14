@@ -34,7 +34,7 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -43,9 +43,17 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+
+        if (!data.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            throw new Error(
+              "Conta criada, mas o Supabase ainda está exigindo confirmação de email. Desative Confirm email em Authentication > Providers > Email.",
+            );
+          }
+        }
+
         toast.success("Conta criada! Preencha sua candidatura.");
-        // auto sign-in if confirmation disabled
-        await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
         navigate({ to: "/candidatura" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });

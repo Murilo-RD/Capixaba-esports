@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import logo from "@/assets/capixaba-logo.png";
@@ -13,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { createAccountWithoutEmailVerification } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar - Capixaba E-Sports" }] }),
@@ -21,6 +23,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const createAccount = useServerFn(createAccountWithoutEmailVerification);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +50,20 @@ function AuthPage() {
 
     try {
       if (mode === "signup") {
+        const created = await createAccount({ data: { email, password, nick } });
+
+        if (created.ok) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInError) throw signInError;
+
+          toast.success("Conta criada! Preencha sua candidatura.");
+          navigate({ to: "/candidatura" });
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -176,6 +193,15 @@ function AuthPage() {
 function formatAuthError(error: unknown) {
   const message = error instanceof Error ? error.message : "Erro ao autenticar.";
   const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("rate limit") ||
+    normalized.includes("email rate limit") ||
+    normalized.includes("over email send rate limit") ||
+    normalized.includes("limite de email")
+  ) {
+    return "O Supabase atingiu o limite de envio de emails. Configure SUPABASE_SERVICE_ROLE_KEY no Render ou desative Confirm email em Authentication > Providers > Email.";
+  }
 
   if (
     normalized.includes("invalid login") ||

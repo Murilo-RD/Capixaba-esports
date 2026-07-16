@@ -1,20 +1,29 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import logo from "@/assets/capixaba-logo.png";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { createConfirmedAccount } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — Capixaba E-Sports" }] }),
+  head: () => ({ meta: [{ title: "Entrar - Capixaba E-Sports" }] }),
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const createAccount = useServerFn(createConfirmedAccount);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,46 +33,52 @@ function AuthPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
-      const { data: p } = await supabase.from("profiles").select("status").eq("id", data.session.user.id).maybeSingle();
-      navigate({ to: p?.status === "aprovado" ? "/relatorio" : "/candidatura" });
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+      navigate({
+        to: profile?.status === "aprovado" ? "/relatorio" : "/candidatura",
+      });
     });
   }, [navigate]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setLoading(true);
+
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        await createAccount({ data: { email, password, nick } });
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/candidatura`,
-            data: { nick },
-          },
         });
-        if (error) throw error;
-
-        if (!data.session) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-          if (signInError) {
-            throw new Error(
-              "Conta criada, mas o Supabase ainda está exigindo confirmação de email. Desative Confirm email em Authentication > Providers > Email.",
-            );
-          }
-        }
+        if (signInError) throw signInError;
 
         toast.success("Conta criada! Preencha sua candidatura.");
         navigate({ to: "/candidatura" });
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        const { data: u } = await supabase.auth.getUser();
-        const { data: p } = await supabase.from("profiles").select("status").eq("id", u.user!.id).maybeSingle();
-        navigate({ to: p?.status === "aprovado" ? "/relatorio" : "/candidatura" });
+        return;
       }
-    } catch (err: any) {
-      toast.error(err.message ?? "Erro");
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+
+      const { data: userResult } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", userResult.user!.id)
+        .maybeSingle();
+      navigate({
+        to: profile?.status === "aprovado" ? "/relatorio" : "/candidatura",
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao autenticar.");
     } finally {
       setLoading(false);
     }
@@ -75,12 +90,19 @@ function AuthPage() {
       <div className="absolute bottom-1/3 -right-32 w-96 h-96 rounded-full bg-accent/30 blur-3xl pointer-events-none" />
       <Card className="w-full max-w-md relative z-10 animate-fade-in">
         <CardHeader className="items-center text-center">
-          <img src={logo} alt="Capixaba E-Sports" className="h-28 w-28 object-contain mb-2" />
+          <img
+            src={logo}
+            alt="Capixaba E-Sports"
+            className="h-28 w-28 object-contain mb-2"
+          />
           <CardTitle className="text-2xl">
-            <span className="text-gradient">CAPIXABA</span> <span className="text-accent">E-SPORTS</span>
+            <span className="text-gradient">CAPIXABA</span>{" "}
+            <span className="text-accent">E-SPORTS</span>
           </CardTitle>
           <CardDescription>
-            {mode === "signin" ? "Entre para enviar seu relatório semanal" : "Crie sua conta de jogador"}
+            {mode === "signin"
+              ? "Entre para enviar seu relatorio semanal"
+              : "Crie sua conta de jogador"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -88,16 +110,34 @@ function AuthPage() {
             {mode === "signup" && (
               <div className="space-y-2">
                 <Label htmlFor="nick">Nick</Label>
-                <Input id="nick" required value={nick} onChange={(e) => setNick(e.target.value)} />
+                <Input
+                  id="nick"
+                  required
+                  value={nick}
+                  onChange={(event) => setNick(event.target.value)}
+                />
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input
+                id="password"
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
             </div>
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? "..." : mode === "signin" ? "Entrar" : "Criar conta"}
@@ -108,10 +148,12 @@ function AuthPage() {
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
             className="mt-4 text-sm text-muted-foreground hover:text-foreground w-full text-center"
           >
-            {mode === "signin" ? "Não tem conta? Criar uma" : "Já tem conta? Entrar"}
+            {mode === "signin" ? "Nao tem conta? Criar uma" : "Ja tem conta? Entrar"}
           </button>
           <div className="mt-4 text-center">
-            <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">← Voltar</Link>
+            <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
+              Voltar
+            </Link>
           </div>
         </CardContent>
       </Card>

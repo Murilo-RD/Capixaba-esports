@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import logo from "@/assets/capixaba-logo.png";
@@ -14,7 +13,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { createConfirmedAccount } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar - Capixaba E-Sports" }] }),
@@ -23,7 +21,6 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const createAccount = useServerFn(createConfirmedAccount);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,12 +47,27 @@ function AuthPage() {
 
     try {
       if (mode === "signup") {
-        await createAccount({ data: { email, password, nick } });
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: { nick },
+          },
         });
-        if (signInError) throw signInError;
+        if (error) throw error;
+
+        if (!data.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInError) {
+            toast.success("Conta criada. Agora entre com seu email e senha.");
+            setMode("signin");
+            return;
+          }
+        }
 
         toast.success("Conta criada! Preencha sua candidatura.");
         navigate({ to: "/candidatura" });
@@ -78,7 +90,7 @@ function AuthPage() {
         to: profile?.status === "aprovado" ? "/relatorio" : "/candidatura",
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao autenticar.");
+      toast.error(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -159,4 +171,31 @@ function AuthPage() {
       </Card>
     </div>
   );
+}
+
+function formatAuthError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Erro ao autenticar.";
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("invalid login") ||
+    normalized.includes("invalid credentials") ||
+    normalized.includes("email not confirmed")
+  ) {
+    return "Email ou senha incorretos.";
+  }
+
+  if (
+    normalized.includes("already registered") ||
+    normalized.includes("user already") ||
+    normalized.includes("already exists")
+  ) {
+    return "Esse email ja esta cadastrado. Entre na sua conta.";
+  }
+
+  if (normalized.includes("password")) {
+    return "A senha precisa ter pelo menos 6 caracteres.";
+  }
+
+  return message;
 }

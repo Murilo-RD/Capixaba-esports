@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, ShieldOff, Users } from "lucide-react";
+import { ShieldCheck, ShieldOff, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { secureWrite } from "@/lib/secure-api";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,24 @@ export function AdminsPanel() {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao alterar admin.");
+    } finally {
+      setBusyUserId(null);
+    }
+  }
+
+  async function deleteUser(user: AdminUser) {
+    const label = user.nick ?? user.email ?? user.id;
+    if (!confirm(`Excluir definitivamente ${label}? Isso remove login, perfil, candidatura e relatorios.`)) return;
+
+    setBusyUserId(user.id);
+    try {
+      await secureWrite("adminUsers.delete", { userId: user.id });
+      toast.success(`${label} excluido.`);
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["candidatos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-reports"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao excluir usuario.");
     } finally {
       setBusyUserId(null);
     }
@@ -134,6 +152,16 @@ export function AdminsPanel() {
                   {busyUserId === user.id ? "Salvando..." : "Tornar admin"}
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={busyUserId === user.id}
+                onClick={() => deleteUser(user)}
+                className="w-full justify-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                {busyUserId === user.id ? "Excluindo..." : "Excluir usuario"}
+              </Button>
             </CardContent>
           </Card>
         ))}

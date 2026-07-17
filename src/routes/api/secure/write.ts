@@ -528,6 +528,55 @@ async function runAction({
       return { ok: true, admin: false };
     }
 
+    case "adminUsers.delete": {
+      requireOwner(owner);
+      const data = z.object({ userId: z.string().uuid() }).parse(payload);
+
+      if (data.userId === userId) {
+        throw new Error("Voce nao pode excluir sua propria conta.");
+      }
+
+      const { data: targetOwner, error: targetOwnerError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("user_id", data.userId)
+        .eq("role", "owner")
+        .maybeSingle();
+      if (targetOwnerError) throw new Error(targetOwnerError.message);
+
+      if (targetOwner) {
+        const { count, error: countError } = await supabase
+          .from("user_roles")
+          .select("user_id", { count: "exact", head: true })
+          .eq("role", "owner");
+        if (countError) throw new Error(countError.message);
+        if ((count ?? 0) <= 1) {
+          throw new Error("Nao e possivel excluir o ultimo admin.");
+        }
+      }
+
+      const { error: messagesError } = await supabase
+        .from("application_messages")
+        .delete()
+        .eq("sender_id", data.userId);
+      if (messagesError) throw new Error(messagesError.message);
+
+      const deletions = [
+        supabase.from("applications").delete().eq("user_id", data.userId),
+        supabase.from("weekly_reports").delete().eq("user_id", data.userId),
+        supabase.from("user_roles").delete().eq("user_id", data.userId),
+        supabase.from("profiles").delete().eq("id", data.userId),
+        (supabase as any).from("app_auth_users").delete().eq("id", data.userId),
+      ];
+
+      for (const deletion of deletions) {
+        const { error } = await deletion;
+        if (error) throw new Error(error.message);
+      }
+
+      return { ok: true };
+    }
+
     case "trainings.create": {
       requireOwner(owner);
       const data = z.object({

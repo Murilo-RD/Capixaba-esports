@@ -678,8 +678,8 @@ async function runAction({
       const data = z.object({
         rival_team_id: z.string().uuid(),
         competition: z.string().trim().min(1),
-        our_score: z.number(),
-        rival_score: z.number(),
+        our_score: z.number().nullable(),
+        rival_score: z.number().nullable(),
         played_at: z.string(),
         notes: z.string().nullable(),
       }).parse(payload);
@@ -694,8 +694,8 @@ async function runAction({
         id: z.string().uuid(),
         rival_team_id: z.string().uuid(),
         competition: z.string().trim().min(1),
-        our_score: z.number(),
-        rival_score: z.number(),
+        our_score: z.number().nullable(),
+        rival_score: z.number().nullable(),
         played_at: z.string(),
         notes: z.string().nullable(),
       }).parse(payload);

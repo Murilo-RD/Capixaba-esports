@@ -118,9 +118,9 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
-          our_score: number
+          our_score: number | null
           played_at: string
-          rival_score: number
+          rival_score: number | null
           rival_team_id: string
         }
         Insert: {
@@ -128,9 +128,9 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
-          our_score?: number
+          our_score?: number | null
           played_at?: string
-          rival_score?: number
+          rival_score?: number | null
           rival_team_id: string
         }
         Update: {
@@ -138,9 +138,9 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
-          our_score?: number
+          our_score?: number | null
           played_at?: string
-          rival_score?: number
+          rival_score?: number | null
           rival_team_id?: string
         }
         Relationships: [

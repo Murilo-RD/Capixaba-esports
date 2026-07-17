@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -15,8 +16,8 @@ type Match = {
   id: string;
   rival_team_id: string;
   competition: string;
-  our_score: number;
-  rival_score: number;
+  our_score: number | null;
+  rival_score: number | null;
   played_at: string;
   notes: string | null;
   rival_teams?: Team;
@@ -36,6 +37,7 @@ function defaultForm() {
     competition: "",
     our_score: 0,
     rival_score: 0,
+    has_result: false,
     played_at: todayInputValue(),
     notes: "",
   };
@@ -49,6 +51,10 @@ function formatDateBR(value: string) {
   const [year, month, day] = normalizeDateInput(value).split("-");
   if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
+}
+
+function hasMatchResult(match: Match) {
+  return match.our_score !== null && match.rival_score !== null;
 }
 
 export function MatchesPanel() {
@@ -77,8 +83,9 @@ export function MatchesPanel() {
     setForm({
       rival_team_id: match.rival_team_id,
       competition: match.competition,
-      our_score: match.our_score,
-      rival_score: match.rival_score,
+      our_score: match.our_score ?? 0,
+      rival_score: match.rival_score ?? 0,
+      has_result: hasMatchResult(match),
       played_at: normalizeDateInput(match.played_at),
       notes: match.notes ?? "",
     });
@@ -98,8 +105,8 @@ export function MatchesPanel() {
       const payload = {
         rival_team_id: form.rival_team_id,
         competition: form.competition.trim(),
-        our_score: form.our_score,
-        rival_score: form.rival_score,
+        our_score: form.has_result ? form.our_score : null,
+        rival_score: form.has_result ? form.rival_score : null,
         played_at: normalizeDateInput(form.played_at),
         notes: form.notes || null,
       };
@@ -109,7 +116,7 @@ export function MatchesPanel() {
         toast.success("Jogo atualizado!");
       } else {
         await secureWrite("matches.create", payload);
-        toast.success("Jogo cadastrado!");
+        toast.success(form.has_result ? "Jogo cadastrado!" : "Jogo agendado!");
       }
       resetForm();
       qc.invalidateQueries({ queryKey: ["matches"] });
@@ -162,17 +169,31 @@ export function MatchesPanel() {
             <Input value={form.competition} onChange={(e) => setForm({ ...form, competition: e.target.value })} placeholder="Ex: Copa Capixaba 2026" />
           </div>
           <div className="space-y-2">
-            <Label>Nosso placar</Label>
-            <Input type="number" min={0} value={form.our_score} onChange={(e) => setForm({ ...form, our_score: Number(e.target.value) })} />
-          </div>
-          <div className="space-y-2">
-            <Label>Placar rival</Label>
-            <Input type="number" min={0} value={form.rival_score} onChange={(e) => setForm({ ...form, rival_score: Number(e.target.value) })} />
-          </div>
-          <div className="space-y-2">
             <Label>Data</Label>
             <Input type="date" value={form.played_at} onChange={(e) => setForm({ ...form, played_at: e.target.value })} />
           </div>
+          <div className="sm:col-span-2 flex items-center gap-3 rounded-md glass px-3 py-2">
+            <Checkbox
+              id="match-has-result"
+              checked={form.has_result}
+              onCheckedChange={(checked) => setForm({ ...form, has_result: checked === true })}
+            />
+            <Label htmlFor="match-has-result" className="cursor-pointer">
+              Resultado ja definido
+            </Label>
+          </div>
+          {form.has_result && (
+            <>
+              <div className="space-y-2">
+                <Label>Nosso placar</Label>
+                <Input type="number" min={0} value={form.our_score} onChange={(e) => setForm({ ...form, our_score: Number(e.target.value) })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Placar rival</Label>
+                <Input type="number" min={0} value={form.rival_score} onChange={(e) => setForm({ ...form, rival_score: Number(e.target.value) })} />
+              </div>
+            </>
+          )}
           <div className="space-y-2 sm:col-span-2">
             <Label>Observacoes (opcional)</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
@@ -184,7 +205,7 @@ export function MatchesPanel() {
               </Button>
             )}
             <Button onClick={save} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar alteracoes" : "Cadastrar jogo"}
+              {saving ? "Salvando..." : editing ? "Salvar alteracoes" : form.has_result ? "Cadastrar jogo" : "Agendar jogo"}
             </Button>
           </div>
         </CardContent>
@@ -194,24 +215,35 @@ export function MatchesPanel() {
         <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Jogos cadastrados</h3>
         {isLoading && <p className="text-muted-foreground text-sm">Carregando...</p>}
         <div className="grid sm:grid-cols-2 gap-3">
-          {(matches ?? []).map((m) => (
-            <div key={m.id} className="rounded-2xl glass p-4 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-muted-foreground">
-                  {formatDateBR(m.played_at)} - {m.competition}
+          {(matches ?? []).map((m) => {
+            const hasResult = hasMatchResult(m);
+            return (
+              <div key={m.id} className="rounded-2xl glass p-4 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-muted-foreground">
+                    {formatDateBR(m.played_at)} - {m.competition}
+                  </div>
+                  <div className="font-bold mt-1">
+                    {hasResult
+                      ? <>Capixaba {m.our_score} x {m.rival_score} {m.rival_teams?.name}</>
+                      : <>Capixaba x {m.rival_teams?.name} <span className="text-xs text-primary">Agendado</span></>}
+                  </div>
                 </div>
-                <div className="font-bold mt-1">
-                  Capixaba {m.our_score} x {m.rival_score} {m.rival_teams?.name}
-                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => startEdit(m)}
+                  className="hover:text-primary"
+                  title={hasResult ? "Editar jogo" : "Adicionar resultado"}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => remove(m.id)} className="text-destructive hover:text-destructive" title="Excluir jogo">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => startEdit(m)} className="hover:text-primary" title="Editar jogo">
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" onClick={() => remove(m.id)} className="text-destructive hover:text-destructive" title="Excluir jogo">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
           {!isLoading && !matches?.length && <p className="text-muted-foreground text-sm">Nenhum jogo cadastrado ainda.</p>}
         </div>
       </div>

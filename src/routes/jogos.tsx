@@ -8,7 +8,7 @@ import { Trophy, ArrowLeft } from "lucide-react";
 export const Route = createFileRoute("/jogos")({
   head: () => ({
     meta: [
-      { title: "Jogos e Resultados — Capixaba E-Sports" },
+      { title: "Jogos e Resultados - Capixaba E-Sports" },
       { name: "description", content: "Acompanhe todos os jogos e resultados da Capixaba E-Sports no Rocket League." },
     ],
   }),
@@ -17,8 +17,13 @@ export const Route = createFileRoute("/jogos")({
 
 type Team = { id: string; name: string; logo_url: string | null };
 type Match = {
-  id: string; rival_team_id: string; competition: string;
-  our_score: number; rival_score: number; played_at: string; notes: string | null;
+  id: string;
+  rival_team_id: string;
+  competition: string;
+  our_score: number | null;
+  rival_score: number | null;
+  played_at: string;
+  notes: string | null;
   rival_teams?: Team;
 };
 
@@ -28,6 +33,10 @@ function formatMatchDate(value: string) {
   const monthIndex = Number(month) - 1;
   if (!year || !day || monthIndex < 0 || monthIndex >= months.length) return value;
   return `${day} de ${months[monthIndex]} de ${year}`;
+}
+
+function hasMatchResult(match: Match) {
+  return match.our_score !== null && match.rival_score !== null;
 }
 
 function JogosPage() {
@@ -44,9 +53,10 @@ function JogosPage() {
   });
 
   const total = data?.length ?? 0;
-  const wins = data?.filter((m) => m.our_score > m.rival_score).length ?? 0;
-  const draws = data?.filter((m) => m.our_score === m.rival_score).length ?? 0;
-  const losses = total - wins - draws;
+  const completed = data?.filter(hasMatchResult) ?? [];
+  const wins = completed.filter((m) => m.our_score! > m.rival_score!).length;
+  const losses = completed.filter((m) => m.our_score! < m.rival_score!).length;
+  const scheduled = total - completed.length;
 
   return (
     <div className="min-h-screen text-foreground relative overflow-hidden">
@@ -62,7 +72,7 @@ function JogosPage() {
             </span>
           </Link>
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            <ArrowLeft className="h-3 w-3" /> Início
+            <ArrowLeft className="h-3 w-3" /> Inicio
           </Link>
         </div>
       </header>
@@ -80,30 +90,31 @@ function JogosPage() {
 
         <div className="grid grid-cols-4 gap-3 mb-8">
           <Stat label="Jogos" value={total} tone="primary" />
-          <Stat label="Vitórias" value={wins} tone="emerald" />
-          <Stat label="Empates" value={draws} tone="muted" />
+          <Stat label="Vitorias" value={wins} tone="emerald" />
           <Stat label="Derrotas" value={losses} tone="destructive" />
+          <Stat label="Agendados" value={scheduled} tone="muted" />
         </div>
 
         {isLoading && <p className="text-muted-foreground">Carregando...</p>}
         {!isLoading && !data?.length && (
           <Card className="glass border-0">
             <CardContent className="py-12 text-center text-muted-foreground">
-              Ainda não há jogos cadastrados.
+              Ainda nao ha jogos cadastrados.
             </CardContent>
           </Card>
         )}
 
         <div className="space-y-3">
           {(data ?? []).map((m) => {
-            const winCapixaba = m.our_score > m.rival_score;
-            const draw = m.our_score === m.rival_score;
+            const hasResult = hasMatchResult(m);
+            const winCapixaba = hasResult && m.our_score! > m.rival_score!;
+            const draw = hasResult && m.our_score === m.rival_score;
             return (
               <Card key={m.id} className="glass border-0 hover:shadow-[var(--shadow-glow)] transition-all">
                 <CardContent className="py-5">
                   <div className="text-xs text-muted-foreground mb-3 flex flex-wrap gap-x-3">
                     <span>{formatMatchDate(m.played_at)}</span>
-                    <span>·</span>
+                    <span>-</span>
                     <span className="text-accent">{m.competition}</span>
                   </div>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
@@ -115,11 +126,15 @@ function JogosPage() {
                       <img src={logo} alt="Capixaba" className="h-20 w-20 sm:h-24 sm:w-24 object-contain drop-shadow-[0_0_15px_rgba(120,180,255,0.4)]" />
                     </div>
                     <div className="text-center px-2">
-                      <div className={`text-3xl sm:text-4xl font-black tabular-nums ${draw ? "text-muted-foreground" : winCapixaba ? "text-emerald-400" : "text-destructive"}`}>
-                        {m.our_score} <span className="text-muted-foreground/50">×</span> {m.rival_score}
+                      <div className={`text-3xl sm:text-4xl font-black tabular-nums ${!hasResult || draw ? "text-muted-foreground" : winCapixaba ? "text-emerald-400" : "text-destructive"}`}>
+                        {hasResult ? (
+                          <>{m.our_score} <span className="text-muted-foreground/50">x</span> {m.rival_score}</>
+                        ) : (
+                          <span className="text-2xl sm:text-3xl">VS</span>
+                        )}
                       </div>
-                      <div className={`text-[10px] uppercase tracking-widest mt-1 ${draw ? "text-muted-foreground" : winCapixaba ? "text-emerald-400" : "text-destructive"}`}>
-                        {draw ? "Empate" : winCapixaba ? "Vitória" : "Derrota"}
+                      <div className={`text-[10px] uppercase tracking-widest mt-1 ${!hasResult || draw ? "text-muted-foreground" : winCapixaba ? "text-emerald-400" : "text-destructive"}`}>
+                        {!hasResult ? "Agendado" : draw ? "Finalizado" : winCapixaba ? "Vitoria" : "Derrota"}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 min-w-0">
@@ -133,7 +148,7 @@ function JogosPage() {
                     </div>
                   </div>
                   <div className="sm:hidden text-center text-xs mt-3 text-muted-foreground">
-                    Capixaba × <strong className="text-foreground">{m.rival_teams?.name}</strong>
+                    Capixaba x <strong className="text-foreground">{m.rival_teams?.name}</strong>
                   </div>
                   {m.notes && (
                     <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-white/10">{m.notes}</p>
@@ -144,7 +159,7 @@ function JogosPage() {
           })}
         </div>
       </main>
-      <footer className="py-6 text-center text-xs text-muted-foreground relative z-10">© Capixaba E-Sports</footer>
+      <footer className="py-6 text-center text-xs text-muted-foreground relative z-10">Capixaba E-Sports</footer>
     </div>
   );
 }

@@ -1,0 +1,5 @@
+ALTER TABLE public.matches
+  ALTER COLUMN our_score DROP NOT NULL,
+  ALTER COLUMN our_score DROP DEFAULT,
+  ALTER COLUMN rival_score DROP NOT NULL,
+  ALTER COLUMN rival_score DROP DEFAULT;

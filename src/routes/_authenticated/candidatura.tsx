@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser } from "@/lib/custom-auth";
+import { getAuthToken, getCurrentUser } from "@/lib/custom-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyNewCandidate } from "@/lib/email.functions";
 import { AppShell } from "@/components/AppShell";
@@ -161,11 +161,7 @@ function CandidaturaPage() {
       const user = getCurrentUser();
       if (!user) throw new Error("Sem usuario");
       const payload: any = { ...form, user_id: user.id, available_slots: slots, quick_request: false };
-      const { data: saved, error } = hasApp
-        ? await supabase.from("applications").update(payload).eq("user_id", user.id).select("id").maybeSingle()
-        : await supabase.from("applications").insert(payload).select("id").maybeSingle();
-      if (error) throw error;
-      await supabase.from("profiles").update({ nick: form.nick }).eq("id", user.id);
+      const saved = await saveApplication(payload);
       const wasNew = !hasApp;
       toast.success("Candidatura enviada!");
       setHasApp(true);
@@ -191,11 +187,7 @@ function CandidaturaPage() {
         available_slots: slots,
         quick_request: true,
       };
-      const { data: saved, error } = hasApp
-        ? await supabase.from("applications").update(payload).eq("user_id", user.id).select("id").maybeSingle()
-        : await supabase.from("applications").insert(payload).select("id").maybeSingle();
-      if (error) throw error;
-      await supabase.from("profiles").update({ nick: form.nick }).eq("id", user.id);
+      const saved = await saveApplication(payload);
       const wasNew = !hasApp;
       toast.success("Solicitação enviada!");
       setHasApp(true);
@@ -370,6 +362,27 @@ function CandidaturaPage() {
       )}
     </AppShell>
   );
+}
+
+async function saveApplication(payload: Record<string, unknown>): Promise<{ id: string | null; created: boolean }> {
+  const token = getAuthToken();
+  if (!token) throw new Error("Sessao expirada. Entre novamente.");
+
+  const response = await fetch("/api/applications/save", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await response.json().catch(() => null)) as
+    | { id?: string | null; created?: boolean; error?: string }
+    | null;
+
+  if (!response.ok) throw new Error(data?.error ?? "Erro ao salvar candidatura.");
+  return { id: data?.id ?? null, created: !!data?.created };
 }
 
 function SlotsPicker({

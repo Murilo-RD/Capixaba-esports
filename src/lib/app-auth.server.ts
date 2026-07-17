@@ -23,6 +23,14 @@ export type AuthSession = {
 
 type AuthRow = AuthSession["user"];
 
+export type AppAuthClaims = {
+  aud?: string;
+  role?: string;
+  sub?: string;
+  email?: string;
+  exp?: number;
+};
+
 type AppAuthUserRow = {
   id: string;
   email: string;
@@ -53,7 +61,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
-function createAuthDbClient() {
+export function createAuthDbClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVER_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
 
@@ -100,6 +108,29 @@ function getJwtSecret(): string {
 
 function base64Url(input: Buffer | string): string {
   return Buffer.from(input).toString("base64url");
+}
+
+function base64UrlDecode(value: string): Buffer {
+  return Buffer.from(value, "base64url");
+}
+
+export async function verifyAppToken(token: string): Promise<AppAuthClaims> {
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Sessao invalida.");
+
+  const { createHmac, timingSafeEqual } = await import("node:crypto");
+  const unsigned = `${parts[0]}.${parts[1]}`;
+  const expected = createHmac("sha256", getJwtSecret()).update(unsigned).digest();
+  const received = base64UrlDecode(parts[2]);
+
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+    throw new Error("Sessao invalida.");
+  }
+
+  const claims = JSON.parse(base64UrlDecode(parts[1]).toString("utf8")) as AppAuthClaims;
+  if (!claims.sub || claims.role !== "authenticated") throw new Error("Sessao invalida.");
+  if (!claims.exp || claims.exp * 1000 <= Date.now()) throw new Error("Sessao expirada.");
+  return claims;
 }
 
 async function hashPassword(password: string): Promise<string> {

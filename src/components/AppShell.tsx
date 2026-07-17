@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { clearAuthSession, getCurrentUser } from "@/lib/custom-auth";
+import { clearAuthSession, getAuthToken, getCurrentUser } from "@/lib/custom-auth";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -17,6 +17,17 @@ function currentWeekLabel() {
   const onejan = new Date(d.getFullYear(), 0, 1);
   const week = Math.ceil(((+d - +onejan) / 86400000 + onejan.getDay() + 1) / 7);
   return `Semana ${week}/${d.getFullYear()}`;
+}
+
+async function fetchCurrentSession(): Promise<{ isOwner: boolean; status: string } | null> {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  const response = await fetch("/api/auth/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+  return response.json();
 }
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; ownerOnly?: boolean };
@@ -57,12 +68,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setEmail(user?.email ?? null);
       setUid(id ?? null);
       if (!id) return;
-      const [{ data: role }, { data: prof }] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", id).eq("role", "owner").maybeSingle(),
-        supabase.from("profiles").select("status").eq("id", id).maybeSingle(),
-      ]);
-      const owner = !!role;
-      const st = prof?.status ?? "pendente";
+      const session = await fetchCurrentSession();
+      const owner = session?.isOwner ?? false;
+      const st = session?.status ?? "pendente";
       setIsOwner(owner);
       setStatus(st);
 

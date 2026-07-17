@@ -2,23 +2,38 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+async function getAdminClient() {
+  const { createAuthDbClient } = await import("@/lib/app-auth.server");
+  return createAuthDbClient();
+}
+
+async function assertOwner(userId: string) {
+  const supabase = await getAdminClient();
+  const { data: role, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "owner")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!role) throw new Error("Apenas admins podem executar isso.");
+  return supabase;
+}
+
 export const deleteUserAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    // verify caller is owner
-    const { data: role } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "owner")
-      .maybeSingle();
-    if (!role) throw new Error("Apenas o dono pode executar isso.");
+    const supabase = await assertOwner(context.userId);
 
-    const { error: deleteError } = await (context.supabase.rpc as any)("app_delete_user", {
-      _user_id: data.userId,
-    });
-    if (deleteError) throw new Error(deleteError.message);
+    await supabase.from("application_messages").delete().eq("sender_id", data.userId);
+    await supabase.from("applications").delete().eq("user_id", data.userId);
+    await supabase.from("weekly_reports").delete().eq("user_id", data.userId);
+    await supabase.from("user_roles").delete().eq("user_id", data.userId);
+    await supabase.from("profiles").delete().eq("id", data.userId);
+    await (supabase as any).from("app_auth_users").delete().eq("id", data.userId);
+
     return { ok: true };
   });
 
@@ -26,29 +41,25 @@ export const rejectCandidate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: role } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "owner")
-      .maybeSingle();
-    if (!role) throw new Error("Apenas o dono pode executar isso.");
+    const supabase = await assertOwner(context.userId);
 
-    const { error: profileError } = await context.supabase
+    const { error: profileError } = await supabase
       .from("profiles")
       .update({ status: "reprovado", meeting_at: null })
       .eq("id", data.userId);
     if (profileError) throw new Error(profileError.message);
 
-    const { error: appError } = await context.supabase
+    const { error: appError } = await supabase
       .from("applications")
       .delete()
       .eq("user_id", data.userId);
     if (appError) throw new Error(appError.message);
 
-    const { error: disableError } = await (context.supabase.rpc as any)("app_disable_user", {
-      _user_id: data.userId,
-    });
+    const { error: disableError } = await (supabase as any)
+      .from("app_auth_users")
+      .delete()
+      .eq("id", data.userId);
+
     if (disableError) {
       return { ok: true, loginDisabled: false, warning: disableError.message };
     }
@@ -59,21 +70,15 @@ export const rejectCandidate = createServerFn({ method: "POST" })
 export const listAdminUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: role } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "owner")
-      .maybeSingle();
-    if (!role) throw new Error("Apenas admins podem ver usuários.");
+    const supabase = await assertOwner(context.userId);
 
-    const { data: profiles, error: profilesError } = await context.supabase
+    const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("id,nick,email,status,created_at")
       .order("created_at", { ascending: false });
     if (profilesError) throw new Error(profilesError.message);
 
-    const { data: roles, error: rolesError } = await context.supabase
+    const { data: roles, error: rolesError } = await supabase
       .from("user_roles")
       .select("user_id,role");
     if (rolesError) throw new Error(rolesError.message);
@@ -98,16 +103,10 @@ export const setAdminRole = createServerFn({ method: "POST" })
     z.object({ userId: z.string().uuid(), admin: z.boolean() }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: role } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "owner")
-      .maybeSingle();
-    if (!role) throw new Error("Apenas admins podem alterar permissões.");
+    const supabase = await assertOwner(context.userId);
 
     if (data.admin) {
-      const { error } = await context.supabase
+      const { error } = await supabase
         .from("user_roles")
         .upsert(
           { user_id: data.userId, role: "owner" },
@@ -118,19 +117,19 @@ export const setAdminRole = createServerFn({ method: "POST" })
     }
 
     if (data.userId === context.userId) {
-      throw new Error("Você não pode remover seu próprio admin.");
+      throw new Error("Voce nao pode remover seu proprio admin.");
     }
 
-    const { count, error: countError } = await context.supabase
+    const { count, error: countError } = await supabase
       .from("user_roles")
       .select("user_id", { count: "exact", head: true })
       .eq("role", "owner");
     if (countError) throw new Error(countError.message);
     if ((count ?? 0) <= 1) {
-      throw new Error("Não é possível remover o último admin.");
+      throw new Error("Nao e possivel remover o ultimo admin.");
     }
 
-    const { error } = await context.supabase
+    const { error } = await supabase
       .from("user_roles")
       .delete()
       .eq("user_id", data.userId)

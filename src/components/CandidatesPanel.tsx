@@ -37,6 +37,14 @@ type Row = {
   profile?: { status: string; meeting_at: string | null };
 };
 
+function toDateTimeLocal(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 export function CandidatesPanel() {
   const qc = useQueryClient();
   const [meetingFor, setMeetingFor] = useState<Row | null>(null);
@@ -60,13 +68,31 @@ export function CandidatesPanel() {
     if (!meetingFor || !meetingDate) return;
     setBusy(true);
     try {
-      const meetingAt = new Date(meetingDate).toISOString();
-      await secureWrite("candidate.status", {
+      const parsedDate = new Date(meetingDate);
+      if (Number.isNaN(parsedDate.getTime())) {
+        throw new Error("Data e hora invalidas.");
+      }
+
+      const meetingAt = parsedDate.toISOString();
+      const result = await secureWrite<{ profile?: { status: string; meeting_at: string | null } }>("candidate.status", {
         userId: meetingFor.user_id,
         status: "reuniao",
         meetingAt,
       });
       toast.success("Reunião agendada.");
+      qc.setQueryData<Row[]>(["candidatos"], (current) =>
+        (current ?? []).map((item) =>
+          item.user_id === meetingFor.user_id
+            ? {
+                ...item,
+                profile: {
+                  ...(item.profile ?? { status: "pendente", meeting_at: null }),
+                  ...(result.profile ?? { status: "reuniao", meeting_at: meetingAt }),
+                },
+              }
+            : item,
+        ),
+      );
       setMeetingFor(null); setMeetingDate("");
       qc.invalidateQueries({ queryKey: ["candidatos"] });
     } catch (err: any) {
@@ -180,7 +206,7 @@ export function CandidatesPanel() {
                   <Button size="sm" variant="outline" onClick={() => setChatFor(r)}>
                     <MessageCircle className="h-3.5 w-3.5 mr-1" /> Chat
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => { setMeetingFor(r); setMeetingDate(r.profile?.meeting_at ? new Date(r.profile.meeting_at).toISOString().slice(0,16) : ""); }}>
+                  <Button size="sm" variant="outline" onClick={() => { setMeetingFor(r); setMeetingDate(toDateTimeLocal(r.profile?.meeting_at)); }}>
                     <Calendar className="h-3.5 w-3.5 mr-1" /> Agendar
                   </Button>
                   {status !== "aprovado" && (
@@ -198,7 +224,7 @@ export function CandidatesPanel() {
         })}
       </div>
 
-      <AlertDialog open={!!meetingFor} onOpenChange={(o) => !o && setMeetingFor(null)}>
+      <AlertDialog open={!!meetingFor} onOpenChange={(o) => { if (!o && !busy) setMeetingFor(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Agendar reunião</AlertDialogTitle>
@@ -212,9 +238,9 @@ export function CandidatesPanel() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => { e.preventDefault(); scheduleMeeting(); }} disabled={busy || !meetingDate}>
+            <Button onClick={scheduleMeeting} disabled={busy || !meetingDate}>
               {busy ? "Salvando..." : "Agendar"}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

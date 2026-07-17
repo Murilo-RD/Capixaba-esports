@@ -431,12 +431,35 @@ async function runAction({
         status: z.enum(["pendente", "reuniao", "aprovado", "reprovado"]),
         meetingAt: z.string().nullable().optional(),
       }).parse(payload);
-      const { error } = await supabase
+
+      const meetingAt = data.status === "reuniao" ? data.meetingAt : null;
+      if (data.status === "reuniao") {
+        if (!meetingAt) throw new Error("Informe a data e hora da reuniao.");
+        const parsed = new Date(meetingAt);
+        if (Number.isNaN(parsed.getTime())) throw new Error("Data da reuniao invalida.");
+      }
+
+      const { data: application, error: appError } = await supabase
+        .from("applications")
+        .select("nick")
+        .eq("user_id", data.userId)
+        .maybeSingle();
+      if (appError) throw new Error(appError.message);
+
+      const profileUpdate: Record<string, unknown> = {
+        id: data.userId,
+        status: data.status,
+        meeting_at: meetingAt,
+      };
+      if (application?.nick) profileUpdate.nick = application.nick;
+
+      const { data: profile, error } = await supabase
         .from("profiles")
-        .update({ status: data.status, meeting_at: data.meetingAt ?? null })
-        .eq("id", data.userId);
+        .upsert(profileUpdate, { onConflict: "id" })
+        .select("id,status,meeting_at")
+        .single();
       if (error) throw new Error(error.message);
-      return { ok: true };
+      return { ok: true, profile };
     }
 
     case "candidate.reject": {

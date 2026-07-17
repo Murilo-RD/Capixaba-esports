@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser } from "@/lib/custom-auth.client";
+import { getCurrentUser } from "@/lib/custom-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyNewCandidate } from "@/lib/email.functions";
 import { AppShell } from "@/components/AppShell";

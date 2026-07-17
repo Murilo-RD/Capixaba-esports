@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getCurrentUser, saveAuthSession } from "@/lib/custom-auth.client";
+import { getCurrentUser, saveAuthSession } from "@/lib/custom-auth";
 import { loginWithAppAuth, registerWithAppAuth } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({

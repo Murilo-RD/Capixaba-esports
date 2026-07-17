@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser } from "@/lib/custom-auth.client";
+import { getCurrentUser } from "@/lib/custom-auth";
 import { AppShell } from "@/components/AppShell";
 import { ReportCard } from "@/components/ReportCard";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";

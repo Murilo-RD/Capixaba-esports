@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser, updateStoredUser } from "@/lib/custom-auth.client";
+import { getCurrentUser, updateStoredUser } from "@/lib/custom-auth";
 import { AppShell } from "@/components/AppShell";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

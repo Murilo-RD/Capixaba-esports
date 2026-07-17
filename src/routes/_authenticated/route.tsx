@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { getCurrentUser } from "@/lib/custom-auth.client";
+import { getCurrentUser } from "@/lib/custom-auth";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,

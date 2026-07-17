@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser } from "@/lib/custom-auth.client";
+import { getCurrentUser } from "@/lib/custom-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { rejectCandidate } from "@/lib/admin-users.functions";
 import { notifyMeetingScheduled } from "@/lib/email.functions";

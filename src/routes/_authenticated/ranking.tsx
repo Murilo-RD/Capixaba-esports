@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Trophy, Medal, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { secureRead } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Database } from "@/integrations/supabase/types";
@@ -66,14 +66,7 @@ type Row = {
 function RankingPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["ranking-reports"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weekly_reports")
-        .select("nick,rank_atual,mmr_atual,semana,created_at")
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as Pick<Report, "nick" | "rank_atual" | "mmr_atual" | "semana" | "created_at">[];
-    },
+    queryFn: async () => secureRead<Pick<Report, "nick" | "rank_atual" | "mmr_atual" | "semana" | "created_at">[]>("reports.ranking", {}),
   });
 
   const rows = useMemo<Row[]>(() => {

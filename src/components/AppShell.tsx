@@ -1,8 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { clearAuthSession, getAuthToken, getCurrentUser } from "@/lib/custom-auth";
+import { secureRead } from "@/lib/secure-api";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -78,11 +78,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (owner) {
         const key = `capixaba:lastSeenCandidates:${id}`;
         const lastSeen = localStorage.getItem(key) ?? new Date(0).toISOString();
-        const { count } = await supabase
-          .from("applications")
-          .select("id", { count: "exact", head: true })
-          .gt("created_at", lastSeen);
-        const c = count ?? 0;
+        const summary = await secureRead<{ newCandidates: number }>("shell.summary", { lastSeenCandidates: lastSeen });
+        const c = summary.newCandidates;
         setNewCandidates(c);
         if (c > 0) {
           toast.info(`${c} nova(s) candidatura(s) aguardando análise`, {
@@ -96,12 +93,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         const week = currentWeekLabel();
         const remindKey = `capixaba:reportReminded:${id}`;
         if (localStorage.getItem(remindKey) !== week) {
-          const { count } = await supabase
-            .from("weekly_reports")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", id)
-            .eq("semana", week);
-          if ((count ?? 0) === 0) {
+          const summary = await secureRead<{ hasCurrentWeekReport: boolean }>("shell.summary", { week });
+          if (!summary.hasCurrentWeekReport) {
             toast.info(`Nova semana! Lembre de enviar o relatório de ${week}.`, {
               duration: 8000,
               action: { label: "Preencher", onClick: () => navigate({ to: "/relatorio" }) },

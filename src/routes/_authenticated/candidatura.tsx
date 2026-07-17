@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { getAuthToken, getCurrentUser } from "@/lib/custom-auth";
+import { secureRead } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { ApplicationChat } from "@/components/ApplicationChat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,14 +93,15 @@ function CandidaturaPage() {
       const user = getCurrentUser();
       if (!user) return;
       setUserId(user.id);
-      const { data: p } = await supabase.from("profiles").select("status, meeting_at, nick").eq("id", user.id).maybeSingle();
+      const loaded = await secureRead<{ profile: any | null; application: any | null }>("application.mine", {});
+      const p = loaded.profile;
       if (p) {
         setStatus(p.status);
         setMeetingAt(p.meeting_at);
         if (p.status === "aprovado") { navigate({ to: "/relatorio" }); return; }
         setForm((f) => ({ ...f, nick: p.nick ?? "" }));
       }
-      const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
+      const app = loaded.application;
       if (app) {
         setHasApp(true);
         setAppId(app.id);

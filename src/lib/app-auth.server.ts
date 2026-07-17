@@ -205,6 +205,14 @@ async function ensureBootstrapAdminRole(
   if (error) throw formatAuthError(error);
 }
 
+async function ensurePlayerRole(supabase: ReturnType<typeof createAuthDbClient>, userId: string) {
+  const { error } = await supabase
+    .from("user_roles")
+    .upsert({ user_id: userId, role: "player" }, { onConflict: "user_id,role", ignoreDuplicates: true });
+
+  if (error) throw formatAuthError(error);
+}
+
 async function getProfileStatus(
   supabase: ReturnType<typeof createAuthDbClient>,
   user: AppAuthUserRow,
@@ -261,14 +269,12 @@ export async function registerAppUser(input: z.infer<typeof registerSchema>): Pr
     throw formatAuthError(profileError);
   }
 
-  const { error: roleError } = await supabase
-    .from("user_roles")
-    .upsert({ user_id: user.id, role: "player" }, { onConflict: "user_id,role", ignoreDuplicates: true });
-
-  if (roleError) {
+  try {
+    await ensurePlayerRole(supabase, user.id);
+  } catch (roleError) {
     await (supabase as any).from("app_auth_users").delete().eq("id", user.id);
     await supabase.from("profiles").delete().eq("id", user.id);
-    throw formatAuthError(roleError);
+    throw roleError;
   }
 
   await ensureBootstrapAdminRole(supabase, user.id, user.email);
@@ -311,10 +317,12 @@ export async function loginAppUser(input: z.infer<typeof credentialsSchema>): Pr
       .update({ password_hash: newHash })
       .eq("id", (rpcUser as AuthRow).id);
 
+    await ensurePlayerRole(supabase, (rpcUser as AuthRow).id);
     await ensureBootstrapAdminRole(supabase, (rpcUser as AuthRow).id, (rpcUser as AuthRow).email);
     return createAuthResponse(rpcUser as AuthRow);
   }
 
+  await ensurePlayerRole(supabase, appUser.id);
   await ensureBootstrapAdminRole(supabase, appUser.id, appUser.email);
   return createAuthResponse(await getProfileStatus(supabase, appUser));
 }

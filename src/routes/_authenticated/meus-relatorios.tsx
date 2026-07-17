@@ -2,9 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser } from "@/lib/custom-auth";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { ReportCard } from "@/components/ReportCard";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";
@@ -28,16 +26,7 @@ function MyReports() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-reports"],
-    queryFn: async () => {
-      const user = getCurrentUser();
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from("weekly_reports").select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Report[];
-    },
+    queryFn: async () => secureRead<Report[]>("reports.mine", {}),
   });
 
   async function handleDelete() {

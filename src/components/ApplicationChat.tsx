@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -30,35 +29,20 @@ export function ApplicationChat({
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      const { data, error } = await supabase
-        .from("application_messages")
-        .select("*")
-        .eq("application_id", applicationId)
-        .order("created_at", { ascending: true });
+    async function loadMessages() {
+      const data = await secureRead<Msg[]>("messages.list", { applicationId });
       if (!mounted) return;
-      if (error) { toast.error(error.message); return; }
       setMsgs((data ?? []) as Msg[]);
-    })();
+    }
 
-    const channel = supabase
-      .channel(`app-msgs-${applicationId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "application_messages", filter: `application_id=eq.${applicationId}` },
-        (payload) => {
-          setMsgs((prev) => {
-            const m = payload.new as Msg;
-            if (prev.some((x) => x.id === m.id)) return prev;
-            return [...prev, m];
-          });
-        }
-      )
-      .subscribe();
+    loadMessages().catch((err) => toast.error(err.message));
+    const interval = window.setInterval(() => {
+      loadMessages().catch(() => undefined);
+    }, 5000);
 
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
   }, [applicationId]);
 
@@ -71,7 +55,8 @@ export function ApplicationChat({
     if (!content) return;
     setSending(true);
     try {
-      await secureWrite("messages.send", { applicationId, content });
+      const message = await secureWrite<Msg>("messages.send", { applicationId, content });
+      setMsgs((prev) => prev.some((item) => item.id === message.id) ? prev : [...prev, message]);
       setText("");
     } catch (err: any) {
       toast.error(err.message);

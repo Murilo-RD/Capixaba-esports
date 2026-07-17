@@ -3,9 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Trash2, Youtube, Play, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser } from "@/lib/custom-auth";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -62,12 +60,9 @@ function TreinosPage() {
 
   useEffect(() => {
     (async () => {
-      const user = getCurrentUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("user_roles").select("role").eq("user_id", user.id).eq("role", "owner").maybeSingle();
-      setIsOwner(!!data);
-    })();
+      const page = await secureRead<{ isOwner: boolean }>("trainings.page", {});
+      setIsOwner(page.isOwner);
+    })().catch(() => setIsOwner(false));
   }, []);
 
   return (
@@ -111,12 +106,7 @@ function CodigosTab({ isOwner }: { isOwner: boolean }) {
 
   const { data, isLoading } = useQuery({
     queryKey: ["trainings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("trainings").select("*").order("nivel").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Training[];
-    },
+    queryFn: async () => (await secureRead<{ trainings: Training[] }>("trainings.page", {})).trainings,
   });
 
   async function submit(e: React.FormEvent) {
@@ -268,12 +258,7 @@ function VideosTab({ isOwner }: { isOwner: boolean }) {
 
   const { data, isLoading } = useQuery({
     queryKey: ["training-videos"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("training_videos").select("*").order("nivel").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as TrainingVideo[];
-    },
+    queryFn: async () => (await secureRead<{ videos: TrainingVideo[] }>("trainings.page", {})).videos,
   });
 
   async function submit(e: React.FormEvent) {

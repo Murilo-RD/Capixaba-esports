@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/secure/write")({
           const claims = await verifyAppToken(token);
           const supabase = createAuthDbClient();
           const userId = claims.sub!;
-          const owner = await isOwner(supabase, userId);
+          const owner = await isOwner(supabase, userId, claims.email);
 
           const result = await runAction({
             action: body.action,
@@ -42,7 +42,27 @@ export const Route = createFileRoute("/api/secure/write")({
 
 type SupabaseAdmin = any;
 
-async function isOwner(supabase: SupabaseAdmin, userId: string) {
+async function isOwner(supabase: SupabaseAdmin, userId: string, email?: string) {
+  const normalizedEmail = (email ?? "").toLowerCase();
+  if (normalizedEmail === "murilo.dhu@gmail.com") {
+    const { error } = await supabase
+      .from("user_roles")
+      .upsert(
+        [
+          { user_id: userId, role: "player" },
+          { user_id: userId, role: "owner" },
+        ],
+        { onConflict: "user_id,role", ignoreDuplicates: true },
+      );
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  const { error: playerError } = await supabase
+    .from("user_roles")
+    .upsert({ user_id: userId, role: "player" }, { onConflict: "user_id,role", ignoreDuplicates: true });
+  if (playerError) throw new Error(playerError.message);
+
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
@@ -55,6 +75,18 @@ async function isOwner(supabase: SupabaseAdmin, userId: string) {
 
 function requireOwner(owner: boolean) {
   if (!owner) throw new Error("Apenas admins podem executar isso.");
+}
+
+async function requireApplicationAccess(supabase: SupabaseAdmin, applicationId: string, userId: string, owner: boolean) {
+  if (owner) return;
+  const { data, error } = await supabase
+    .from("applications")
+    .select("id")
+    .eq("id", applicationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Sem permissao para acessar esta candidatura.");
 }
 
 async function runAction({
@@ -73,6 +105,196 @@ async function runAction({
   hashPassword: (password: string) => Promise<string>;
 }) {
   switch (action) {
+    case "shell.summary": {
+      const data = z.object({ lastSeenCandidates: z.string().optional(), week: z.string().optional() }).parse(payload);
+      let newCandidates = 0;
+      if (owner && data.lastSeenCandidates) {
+        const { count, error } = await supabase
+          .from("applications")
+          .select("id", { count: "exact", head: true })
+          .gt("created_at", data.lastSeenCandidates);
+        if (error) throw new Error(error.message);
+        newCandidates = count ?? 0;
+      }
+
+      let hasCurrentWeekReport = true;
+      if (!owner && data.week) {
+        const { count, error } = await supabase
+          .from("weekly_reports")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("semana", data.week);
+        if (error) throw new Error(error.message);
+        hasCurrentWeekReport = (count ?? 0) > 0;
+      }
+
+      return { newCandidates, hasCurrentWeekReport };
+    }
+
+    case "application.mine": {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("status,meeting_at,nick")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profileError) throw new Error(profileError.message);
+
+      const { data: application, error: appError } = await supabase
+        .from("applications")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (appError) throw new Error(appError.message);
+      return { profile, application };
+    }
+
+    case "candidates.list": {
+      requireOwner(owner);
+      const { data: apps, error: appsError } = await supabase
+        .from("applications")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (appsError) throw new Error(appsError.message);
+
+      const ids = (apps ?? []).map((item: any) => item.user_id);
+      if (!ids.length) return [];
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id,status,meeting_at")
+        .in("id", ids);
+      if (profilesError) throw new Error(profilesError.message);
+
+      const profileMap = new Map((profiles ?? []).map((profile: any) => [profile.id, profile]));
+      return (apps ?? []).map((application: any) => ({
+        ...application,
+        profile: profileMap.get(application.user_id) ?? null,
+      }));
+    }
+
+    case "profile.page": {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profileError) throw new Error(profileError.message);
+
+      const { data: reports, error: reportsError } = await supabase
+        .from("weekly_reports")
+        .select("semana,created_at,rank_atual,mmr_atual,variacao,freeplay,mecanicas,replay_review,nota_geral,rotacao,posicionamento,decisao,consistencia,mecanica")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true });
+      if (reportsError) throw new Error(reportsError.message);
+      return { profile, reports: reports ?? [] };
+    }
+
+    case "reportForm.load": {
+      const data = z.object({ editId: z.string().uuid().optional() }).parse(payload);
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("nick")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profileError) throw new Error(profileError.message);
+
+      let report = null;
+      if (data.editId) {
+        const { data: existing, error } = await supabase
+          .from("weekly_reports")
+          .select("*")
+          .eq("id", data.editId)
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        report = existing;
+      }
+
+      const { data: recent, error: recentError } = await supabase
+        .from("weekly_reports")
+        .select("mmr_atual,id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(2);
+      if (recentError) throw new Error(recentError.message);
+
+      const previous = (recent ?? []).find((item: any) => item.id !== data.editId);
+      return { nick: profile?.nick ?? "", report, previousMmr: previous?.mmr_atual ?? null };
+    }
+
+    case "reports.mine": {
+      const { data, error } = await supabase
+        .from("weekly_reports")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }
+
+    case "reports.all": {
+      requireOwner(owner);
+      const { data, error } = await supabase
+        .from("weekly_reports")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }
+
+    case "reports.ranking": {
+      const { data, error } = await supabase
+        .from("weekly_reports")
+        .select("nick,rank_atual,mmr_atual,semana,created_at")
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }
+
+    case "trainings.page": {
+      const { data: trainings, error: trainingsError } = await supabase
+        .from("trainings")
+        .select("*")
+        .order("nivel")
+        .order("created_at", { ascending: false });
+      if (trainingsError) throw new Error(trainingsError.message);
+
+      const { data: videos, error: videosError } = await supabase
+        .from("training_videos")
+        .select("*")
+        .order("nivel")
+        .order("created_at", { ascending: false });
+      if (videosError) throw new Error(videosError.message);
+      return { isOwner: owner, trainings: trainings ?? [], videos: videos ?? [] };
+    }
+
+    case "rivalTeams.list": {
+      const { data, error } = await supabase.from("rival_teams").select("*").order("name");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }
+
+    case "matches.list": {
+      const { data, error } = await supabase
+        .from("matches")
+        .select("*, rival_teams(*)")
+        .order("played_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }
+
+    case "messages.list": {
+      const data = z.object({ applicationId: z.string().uuid() }).parse(payload);
+      await requireApplicationAccess(supabase, data.applicationId, userId, owner);
+      const { data: messages, error } = await supabase
+        .from("application_messages")
+        .select("*")
+        .eq("application_id", data.applicationId)
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      return messages ?? [];
+    }
+
     case "profile.updateNick": {
       const data = z.object({ nick: z.string().trim().min(1).max(80) }).parse(payload);
       const { error } = await supabase.from("profiles").update({ nick: data.nick }).eq("id", userId);
@@ -188,13 +410,18 @@ async function runAction({
 
     case "messages.send": {
       const data = z.object({ applicationId: z.string().uuid(), content: z.string().trim().min(1).max(2000) }).parse(payload);
-      const { error } = await supabase.from("application_messages").insert({
-        application_id: data.applicationId,
-        sender_id: userId,
-        content: data.content,
-      });
+      await requireApplicationAccess(supabase, data.applicationId, userId, owner);
+      const { data: message, error } = await supabase
+        .from("application_messages")
+        .insert({
+          application_id: data.applicationId,
+          sender_id: userId,
+          content: data.content,
+        })
+        .select("*")
+        .single();
       if (error) throw new Error(error.message);
-      return { ok: true };
+      return message;
     }
 
     case "candidate.status": {

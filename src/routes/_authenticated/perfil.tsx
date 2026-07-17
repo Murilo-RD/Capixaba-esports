@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser, updateStoredUser } from "@/lib/custom-auth";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -41,27 +40,15 @@ function PerfilPage() {
   const [syncing, setSyncing] = useState(false);
 
   const { data: profile } = useQuery({
-    queryKey: ["profile", uid],
+    queryKey: ["profile-page", uid],
     enabled: !!uid,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => (await secureRead<{ profile: any; reports: any[] }>("profile.page", {})).profile,
   });
 
   const { data: myReports } = useQuery({
-    queryKey: ["my-evolution-reports", uid],
+    queryKey: ["profile-reports", uid],
     enabled: !!uid,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weekly_reports")
-        .select("semana,created_at,rank_atual,mmr_atual,variacao,freeplay,mecanicas,replay_review,nota_geral,rotacao,posicionamento,decisao,consistencia,mecanica")
-        .eq("user_id", uid!)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: async () => (await secureRead<{ profile: any; reports: any[] }>("profile.page", {})).reports,
   });
 
   useEffect(() => {
@@ -89,7 +76,7 @@ function PerfilPage() {
       await secureWrite("profile.updateNick", { nick });
       updateStoredUser({ nick });
       toast.success("Perfil atualizado.");
-      qc.invalidateQueries({ queryKey: ["profile", uid] });
+      qc.invalidateQueries({ queryKey: ["profile-page", uid] });
     } catch (err: any) { toast.error(err.message); }
     finally { setLoading(false); }
   }
@@ -114,7 +101,8 @@ function PerfilPage() {
     try {
       await secureWrite("profile.syncTracker", { platform, identifier: rlId.trim() });
       toast.success("Perfil sincronizado com a Tracker Network!");
-      qc.invalidateQueries({ queryKey: ["profile", uid] });
+      qc.invalidateQueries({ queryKey: ["profile-page", uid] });
+      qc.invalidateQueries({ queryKey: ["profile-reports", uid] });
       qc.invalidateQueries({ queryKey: ["public-roster"] });
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao sincronizar");

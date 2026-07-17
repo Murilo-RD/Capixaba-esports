@@ -1,8 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,11 +27,7 @@ export function RivalTeamsPanel() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["rival-teams"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rival_teams").select("*").order("name");
-      if (error) throw error;
-      return data as Team[];
-    },
+    queryFn: async () => secureRead<Team[]>("rivalTeams.list", {}),
   });
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {

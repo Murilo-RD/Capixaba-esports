@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/custom-auth";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,35 +68,27 @@ function RelatorioPage() {
 
   useEffect(() => {
     (async () => {
-      const user = getCurrentUser();
-      if (!user) return;
-      const { data: p } = await supabase.from("profiles").select("nick").eq("id", user.id).maybeSingle();
-      if (p?.nick) setForm((f) => ({ ...f, nick: p.nick! }));
+      const loaded = await secureRead<{ nick: string; report: any | null; previousMmr: string | null }>(
+        "reportForm.load",
+        { editId },
+      );
+      if (loaded.nick) setForm((f) => ({ ...f, nick: loaded.nick }));
 
-      if (editId) {
-        const { data: rep } = await supabase.from("weekly_reports").select("*").eq("id", editId).maybeSingle();
-        if (rep) {
-          setForm({
-            nick: rep.nick, semana: rep.semana,
-            rank_atual: rep.rank_atual ?? "Champion I",
-            mmr_atual: rep.mmr_atual ?? "",
-            freeplay: rep.freeplay, mecanicas: rep.mecanicas, replay_review: rep.replay_review,
-            rotacao: rep.rotacao ?? 5, posicionamento: rep.posicionamento ?? 5,
-            decisao: rep.decisao ?? 5, consistencia: rep.consistencia ?? 5,
-            mecanica: rep.mecanica ?? 5,
-            evolucao: rep.evolucao ?? "", melhorar: rep.melhorar ?? "", objetivo: rep.objetivo ?? "",
-          });
-        }
+      const rep = loaded.report;
+      if (rep) {
+        setForm({
+          nick: rep.nick, semana: rep.semana,
+          rank_atual: rep.rank_atual ?? "Champion I",
+          mmr_atual: rep.mmr_atual ?? "",
+          freeplay: rep.freeplay, mecanicas: rep.mecanicas, replay_review: rep.replay_review,
+          rotacao: rep.rotacao ?? 5, posicionamento: rep.posicionamento ?? 5,
+          decisao: rep.decisao ?? 5, consistencia: rep.consistencia ?? 5,
+          mecanica: rep.mecanica ?? 5,
+          evolucao: rep.evolucao ?? "", melhorar: rep.melhorar ?? "", objetivo: rep.objetivo ?? "",
+        });
       }
 
-      // Busca o MMR do último relatório (ignorando o que está sendo editado)
-      const q = supabase.from("weekly_reports").select("mmr_atual,id")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(2);
-      const { data: lasts } = await q;
-      const ref = (lasts ?? []).find((r) => r.id !== editId);
-      if (ref?.mmr_atual) setPrevMMR(parseMMR(ref.mmr_atual));
+      if (loaded.previousMmr) setPrevMMR(parseMMR(loaded.previousMmr));
     })();
   }, [editId]);
 

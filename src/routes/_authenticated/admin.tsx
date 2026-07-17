@@ -7,8 +7,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
   BarChart, Bar,
 } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { ReportCard } from "@/components/ReportCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,14 +45,7 @@ function Admin() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["all-reports"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weekly_reports")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as Report[];
-    },
+    queryFn: async () => secureRead<Report[]>("reports.all", {}),
   });
 
   async function handleDelete() {

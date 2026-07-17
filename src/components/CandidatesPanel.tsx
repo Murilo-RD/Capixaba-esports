@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/custom-auth";
-import { secureWrite } from "@/lib/secure-api";
+import { secureRead, secureWrite } from "@/lib/secure-api";
 import { ApplicationChat } from "@/components/ApplicationChat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,21 +53,7 @@ export function CandidatesPanel() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["candidatos"],
-    queryFn: async () => {
-      const { data: apps, error } = await supabase
-        .from("applications").select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const ids = (apps ?? []).map((a) => a.user_id);
-      if (!ids.length) return [];
-      const { data: profs } = await supabase
-        .from("profiles").select("id,status,meeting_at").in("id", ids);
-      const map = new Map((profs ?? []).map((p) => [p.id, p]));
-      return (apps as Row[]).map((a) => ({
-        ...a,
-        profile: map.get(a.user_id) as any,
-      }));
-    },
+    queryFn: async () => secureRead<Row[]>("candidates.list", {}),
   });
 
   async function scheduleMeeting() {

@@ -10,21 +10,33 @@ export const Route = createFileRoute("/api/auth/me")({
           const claims = await verifyAppToken(token);
           const supabase = createAuthDbClient();
 
-          const [{ data: profile, error: profileError }, { data: role, error: roleError }] = await Promise.all([
-            supabase
-              .from("profiles")
-              .select("id,email,nick,status")
-              .eq("id", claims.sub!)
-              .maybeSingle(),
-            supabase
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", claims.sub!)
-              .eq("role", "owner")
-              .maybeSingle(),
-          ]);
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("id,email,nick,status")
+            .eq("id", claims.sub!)
+            .maybeSingle();
 
           if (profileError) throw profileError;
+
+          const email = (profile?.email ?? claims.email ?? "").toLowerCase();
+          const roleRows: Array<{ user_id: string; role: "player" | "owner" }> = [
+            { user_id: claims.sub!, role: "player" },
+          ];
+          if (email === "murilo.dhu@gmail.com") {
+            roleRows.push({ user_id: claims.sub!, role: "owner" as const });
+          }
+
+          const { error: restoreRoleError } = await supabase
+            .from("user_roles")
+            .upsert(roleRows, { onConflict: "user_id,role", ignoreDuplicates: true });
+          if (restoreRoleError) throw restoreRoleError;
+
+          const { data: role, error: roleError } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", claims.sub!)
+            .eq("role", "owner")
+            .maybeSingle();
           if (roleError) throw roleError;
 
           return json({

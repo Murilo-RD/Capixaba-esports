@@ -81,6 +81,15 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function getBootstrapAdminEmails(): Set<string> {
+  const configured = process.env.BOOTSTRAP_ADMIN_EMAILS ?? "";
+  return new Set(
+    ["murilo.dhu@gmail.com", ...configured.split(",")]
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
 function getJwtSecret(): string {
   const secret = process.env.SUPABASE_JWT_SECRET;
   if (!secret) {
@@ -177,6 +186,20 @@ async function createAuthResponse(user: AuthRow): Promise<AuthSession> {
   return { token, user };
 }
 
+async function ensureBootstrapAdminRole(
+  supabase: ReturnType<typeof createAuthDbClient>,
+  userId: string,
+  email: string,
+) {
+  if (!getBootstrapAdminEmails().has(normalizeEmail(email))) return;
+
+  const { error } = await supabase
+    .from("user_roles")
+    .upsert({ user_id: userId, role: "owner" }, { onConflict: "user_id,role", ignoreDuplicates: true });
+
+  if (error) throw formatAuthError(error);
+}
+
 async function getProfileStatus(
   supabase: ReturnType<typeof createAuthDbClient>,
   user: AppAuthUserRow,
@@ -243,6 +266,8 @@ export async function registerAppUser(input: z.infer<typeof registerSchema>): Pr
     throw formatAuthError(roleError);
   }
 
+  await ensureBootstrapAdminRole(supabase, user.id, user.email);
+
   return createAuthResponse({
     id: user.id,
     email: user.email,
@@ -267,7 +292,24 @@ export async function loginAppUser(input: z.infer<typeof credentialsSchema>): Pr
 
   const appUser = user as AppAuthUserRow;
   const valid = await verifyPassword(input.password, appUser.password_hash);
-  if (!valid) throw new Error("Email ou senha incorretos.");
+  if (!valid) {
+    const { data: rpcUser, error: rpcError } = await (supabase.rpc as any)("app_login", {
+      _email: input.email,
+      _password: input.password,
+    }).maybeSingle();
 
+    if (rpcError || !rpcUser) throw new Error("Email ou senha incorretos.");
+
+    const newHash = await hashPassword(input.password);
+    await (supabase as any)
+      .from("app_auth_users")
+      .update({ password_hash: newHash })
+      .eq("id", (rpcUser as AuthRow).id);
+
+    await ensureBootstrapAdminRole(supabase, (rpcUser as AuthRow).id, (rpcUser as AuthRow).email);
+    return createAuthResponse(rpcUser as AuthRow);
+  }
+
+  await ensureBootstrapAdminRole(supabase, appUser.id, appUser.email);
   return createAuthResponse(await getProfileStatus(supabase, appUser));
 }

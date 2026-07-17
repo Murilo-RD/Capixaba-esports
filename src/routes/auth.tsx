@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { createAccountWithoutEmailVerification } from "@/lib/auth.functions";
+import { getCurrentUser, saveAuthSession } from "@/lib/custom-auth.client";
+import { loginWithAppAuth, registerWithAppAuth } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar - Capixaba E-Sports" }] }),
@@ -23,7 +23,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const createAccount = useServerFn(createAccountWithoutEmailVerification);
+  const createAccount = useServerFn(registerWithAppAuth);
+  const login = useServerFn(loginWithAppAuth);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,17 +32,12 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) return;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("status")
-        .eq("id", data.session.user.id)
-        .maybeSingle();
+    const user = getCurrentUser();
+    if (user) {
       navigate({
-        to: profile?.status === "aprovado" ? "/relatorio" : "/candidatura",
+        to: user.status === "aprovado" ? "/relatorio" : "/candidatura",
       });
-    });
+    }
   }, [navigate]);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -51,60 +47,16 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         const created = await createAccount({ data: { email, password, nick } });
-
-        if (created.ok) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          if (signInError) throw signInError;
-
-          toast.success("Conta criada! Preencha sua candidatura.");
-          navigate({ to: "/candidatura" });
-          return;
-        }
-
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { nick },
-          },
-        });
-        if (error) throw error;
-
-        if (!data.session) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (signInError) {
-            toast.success("Conta criada. Agora entre com seu email e senha.");
-            setMode("signin");
-            return;
-          }
-        }
-
+        saveAuthSession(created.token, created.user);
         toast.success("Conta criada! Preencha sua candidatura.");
         navigate({ to: "/candidatura" });
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-
-      const { data: userResult } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("status")
-        .eq("id", userResult.user!.id)
-        .maybeSingle();
+      const session = await login({ data: { email, password } });
+      saveAuthSession(session.token, session.user);
       navigate({
-        to: profile?.status === "aprovado" ? "/relatorio" : "/candidatura",
+        to: session.user.status === "aprovado" ? "/relatorio" : "/candidatura",
       });
     } catch (err) {
       toast.error(formatAuthError(err));
@@ -195,18 +147,10 @@ function formatAuthError(error: unknown) {
   const normalized = message.toLowerCase();
 
   if (
-    normalized.includes("rate limit") ||
-    normalized.includes("email rate limit") ||
-    normalized.includes("over email send rate limit") ||
-    normalized.includes("limite de email")
-  ) {
-    return "O Supabase atingiu o limite de envio de emails. Configure SUPABASE_SERVICE_ROLE_KEY no Render ou desative Confirm email em Authentication > Providers > Email.";
-  }
-
-  if (
     normalized.includes("invalid login") ||
     normalized.includes("invalid credentials") ||
-    normalized.includes("email not confirmed")
+    normalized.includes("invalid_credentials") ||
+    normalized.includes("email ou senha")
   ) {
     return "Email ou senha incorretos.";
   }

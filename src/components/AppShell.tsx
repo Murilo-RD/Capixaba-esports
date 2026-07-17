@@ -2,6 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { clearAuthSession, getCurrentUser } from "@/lib/custom-auth.client";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -51,9 +52,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const id = userData.user?.id;
-      setEmail(userData.user?.email ?? null);
+      const user = getCurrentUser();
+      const id = user?.id;
+      setEmail(user?.email ?? null);
       setUid(id ?? null);
       if (!id) return;
       const [{ data: role }, { data: prof }] = await Promise.all([
@@ -124,11 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // Force a clean route/session reload so pending candidates do not get stuck
-      // in the authenticated shell with stale profile state.
+      clearAuthSession();
       window.location.replace("/auth");
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao sair da conta.");

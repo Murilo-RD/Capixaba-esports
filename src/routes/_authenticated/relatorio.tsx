@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/custom-auth.client";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,9 +68,9 @@ function RelatorioPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      const { data: p } = await supabase.from("profiles").select("nick").eq("id", u.user.id).maybeSingle();
+      const user = getCurrentUser();
+      if (!user) return;
+      const { data: p } = await supabase.from("profiles").select("nick").eq("id", user.id).maybeSingle();
       if (p?.nick) setForm((f) => ({ ...f, nick: p.nick! }));
 
       if (editId) {
@@ -90,7 +91,7 @@ function RelatorioPage() {
 
       // Busca o MMR do último relatório (ignorando o que está sendo editado)
       const q = supabase.from("weekly_reports").select("mmr_atual,id")
-        .eq("user_id", u.user.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(2);
       const { data: lasts } = await q;
@@ -126,8 +127,8 @@ function RelatorioPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("Sem usuário");
+      const user = getCurrentUser();
+      if (!user) throw new Error("Sem usuario");
       const payload = {
         nick: form.nick, semana: form.semana, rank_atual: form.rank_atual,
         mmr_atual: form.mmr_atual, variacao: variacaoAuto,
@@ -135,7 +136,7 @@ function RelatorioPage() {
         rotacao: form.rotacao, posicionamento: form.posicionamento, decisao: form.decisao,
         consistencia: form.consistencia, mecanica: form.mecanica,
         evolucao: form.evolucao, melhorar: form.melhorar, objetivo: form.objetivo,
-        nota_geral: notaGeral, user_id: u.user.id,
+        nota_geral: notaGeral, user_id: user.id,
       };
       const { error } = editId
         ? await supabase.from("weekly_reports").update(payload).eq("id", editId)

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/custom-auth.client";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyNewCandidate } from "@/lib/email.functions";
 import { AppShell } from "@/components/AppShell";
@@ -92,17 +93,17 @@ function CandidaturaPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      setUserId(u.user.id);
-      const { data: p } = await supabase.from("profiles").select("status, meeting_at, nick").eq("id", u.user.id).maybeSingle();
+      const user = getCurrentUser();
+      if (!user) return;
+      setUserId(user.id);
+      const { data: p } = await supabase.from("profiles").select("status, meeting_at, nick").eq("id", user.id).maybeSingle();
       if (p) {
         setStatus(p.status);
         setMeetingAt(p.meeting_at);
         if (p.status === "aprovado") { navigate({ to: "/relatorio" }); return; }
         setForm((f) => ({ ...f, nick: p.nick ?? "" }));
       }
-      const { data: app } = await supabase.from("applications").select("*").eq("user_id", u.user.id).maybeSingle();
+      const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
       if (app) {
         setHasApp(true);
         setAppId(app.id);
@@ -157,14 +158,14 @@ function CandidaturaPage() {
     if (slots.length === 0) { toast.error("Adicione pelo menos uma data/horário de disponibilidade para a reunião."); return; }
     setSaving(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("Sem usuário");
-      const payload: any = { ...form, user_id: u.user.id, available_slots: slots, quick_request: false };
+      const user = getCurrentUser();
+      if (!user) throw new Error("Sem usuario");
+      const payload: any = { ...form, user_id: user.id, available_slots: slots, quick_request: false };
       const { data: saved, error } = hasApp
-        ? await supabase.from("applications").update(payload).eq("user_id", u.user.id).select("id").maybeSingle()
+        ? await supabase.from("applications").update(payload).eq("user_id", user.id).select("id").maybeSingle()
         : await supabase.from("applications").insert(payload).select("id").maybeSingle();
       if (error) throw error;
-      await supabase.from("profiles").update({ nick: form.nick }).eq("id", u.user.id);
+      await supabase.from("profiles").update({ nick: form.nick }).eq("id", user.id);
       const wasNew = !hasApp;
       toast.success("Candidatura enviada!");
       setHasApp(true);
@@ -181,20 +182,20 @@ function CandidaturaPage() {
     if (slots.length === 0) { toast.error("Adicione pelo menos uma data/horário de disponibilidade para a reunião."); return; }
     setSaving(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("Sem usuário");
+      const user = getCurrentUser();
+      if (!user) throw new Error("Sem usuario");
       const payload: any = {
-        user_id: u.user.id,
+        user_id: user.id,
         nick: form.nick,
         discord: form.discord,
         available_slots: slots,
         quick_request: true,
       };
       const { data: saved, error } = hasApp
-        ? await supabase.from("applications").update(payload).eq("user_id", u.user.id).select("id").maybeSingle()
+        ? await supabase.from("applications").update(payload).eq("user_id", user.id).select("id").maybeSingle()
         : await supabase.from("applications").insert(payload).select("id").maybeSingle();
       if (error) throw error;
-      await supabase.from("profiles").update({ nick: form.nick }).eq("id", u.user.id);
+      await supabase.from("profiles").update({ nick: form.nick }).eq("id", user.id);
       const wasNew = !hasApp;
       toast.success("Solicitação enviada!");
       setHasApp(true);

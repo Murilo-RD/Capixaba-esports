@@ -4,7 +4,16 @@ import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
-
+type AppClaims = {
+  aud?: string;
+  role?: string;
+  sub?: string;
+  email?: string;
+  exp?: number;
+  iat?: number;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
+};
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
@@ -28,6 +37,44 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
     headers.set('apikey', supabaseKey);
     return fetch(input, { ...init, headers });
   };
+}
+
+function base64UrlDecode(value: string): Buffer {
+  return Buffer.from(value, 'base64url');
+}
+
+async function verifyAppJwt(token: string): Promise<AppClaims> {
+  const secret = process.env.SUPABASE_JWT_SECRET;
+  if (!secret) {
+    throw new Error('Unauthorized: SUPABASE_JWT_SECRET is not configured');
+  }
+
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Unauthorized: Invalid token');
+  }
+
+  const { createHmac, timingSafeEqual } = await import('node:crypto');
+  const unsigned = `${parts[0]}.${parts[1]}`;
+  const expected = createHmac('sha256', secret).update(unsigned).digest();
+  const received = base64UrlDecode(parts[2]);
+
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+    throw new Error('Unauthorized: Invalid token signature');
+  }
+
+  const claims = JSON.parse(base64UrlDecode(parts[1]).toString('utf8')) as AppClaims;
+  if (!claims.sub) {
+    throw new Error('Unauthorized: No user ID found in token');
+  }
+  if (claims.role !== 'authenticated') {
+    throw new Error('Unauthorized: Invalid role');
+  }
+  if (!claims.exp || claims.exp * 1000 <= Date.now()) {
+    throw new Error('Unauthorized: Token expired');
+  }
+
+  return claims;
 }
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
@@ -71,6 +118,8 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Error('Unauthorized: Invalid token');
     }
 
+    const claims = await verifyAppJwt(token);
+
     const supabase = createClient<Database>(
       SUPABASE_URL!,
       SUPABASE_PUBLISHABLE_KEY!,
@@ -89,20 +138,11 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       }
     );
 
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
-      throw new Error('Unauthorized: Invalid token');
-    }
-
-    if (!data.claims.sub) {
-      throw new Error('Unauthorized: No user ID found in token');
-    }
-
     return next({
       context: {
         supabase,
-        userId: data.claims.sub,
-        claims: data.claims,
+        userId: claims.sub,
+        claims,
       },
     });
   },

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/custom-auth.client";
 import { useServerFn } from "@tanstack/react-start";
 import { rejectCandidate } from "@/lib/admin-users.functions";
 import { notifyMeetingScheduled } from "@/lib/email.functions";
@@ -52,7 +53,7 @@ export function CandidatesPanel() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setOwnerId(data.user?.id ?? null));
+    setOwnerId(getCurrentUser()?.id ?? null);
   }, []);
 
   const { data, isLoading } = useQuery({
@@ -108,10 +109,10 @@ export function CandidatesPanel() {
     try {
       const result = await rejectCandidateFn({ data: { userId: rejectFor.user_id } });
       if (result.warning) {
-        toast.warning(`${rejectFor.nick} recusado. Conta Auth não excluída: ${result.warning}`);
+        toast.warning(`${rejectFor.nick} recusado. Login nao desativado: ${result.warning}`);
       } else {
-        toast.success(result.authDeleted
-          ? `${rejectFor.nick} recusado e conta excluída.`
+        toast.success(result.loginDisabled
+          ? `${rejectFor.nick} recusado e login desativado.`
           : `${rejectFor.nick} recusado.`
         );
       }
@@ -231,7 +232,7 @@ export function CandidatesPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Recusar candidato?</AlertDialogTitle>
             <AlertDialogDescription>
-              A candidatura de <strong>{rejectFor?.nick}</strong> será removida e o perfil ficará como reprovado. Se a chave service role estiver configurada, a conta Auth também será excluída.
+              A candidatura de <strong>{rejectFor?.nick}</strong> será removida, o perfil ficará como reprovado e o login dessa conta será desativado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -15,9 +15,10 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!role) throw new Error("Apenas o dono pode executar isso.");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
+    const { error: deleteError } = await (context.supabase.rpc as any)("app_delete_user", {
+      _user_id: data.userId,
+    });
+    if (deleteError) throw new Error(deleteError.message);
     return { ok: true };
   });
 
@@ -45,16 +46,14 @@ export const rejectCandidate = createServerFn({ method: "POST" })
       .eq("user_id", data.userId);
     if (appError) throw new Error(appError.message);
 
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-      if (error) {
-        return { ok: true, authDeleted: false, warning: error.message };
-      }
-      return { ok: true, authDeleted: true };
+    const { error: disableError } = await (context.supabase.rpc as any)("app_disable_user", {
+      _user_id: data.userId,
+    });
+    if (disableError) {
+      return { ok: true, loginDisabled: false, warning: disableError.message };
     }
 
-    return { ok: true, authDeleted: false };
+    return { ok: true, loginDisabled: true };
   });
 
 export const listAdminUsers = createServerFn({ method: "GET" })

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser, updateStoredUser } from "@/lib/custom-auth.client";
 import { AppShell } from "@/components/AppShell";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -68,10 +69,10 @@ function PerfilPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      setEmail(u.user.email ?? "");
-      setUid(u.user.id);
+      const user = getCurrentUser();
+      if (!user) return;
+      setEmail(user.email ?? "");
+      setUid(user.id);
     })();
   }, []);
 
@@ -90,6 +91,7 @@ function PerfilPage() {
     try {
       const { error } = await supabase.from("profiles").update({ nick }).eq("id", uid);
       if (error) throw error;
+      updateStoredUser({ nick });
       toast.success("Perfil atualizado.");
       qc.invalidateQueries({ queryKey: ["profile", uid] });
     } catch (err: any) { toast.error(err.message); }
@@ -98,10 +100,14 @@ function PerfilPage() {
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
+    if (!uid) { toast.error("Sessao expirada. Entre novamente."); return; }
     if (newPwd.length < 6) { toast.error("Senha mínima de 6 caracteres."); return; }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPwd });
+      const { error } = await (supabase.rpc as any)("app_change_password", {
+        _user_id: uid,
+        _password: newPwd,
+      });
       if (error) throw error;
       toast.success("Senha alterada.");
       setNewPwd("");

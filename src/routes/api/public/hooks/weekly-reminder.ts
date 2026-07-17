@@ -30,10 +30,14 @@ export const Route = createFileRoute("/api/public/hooks/weekly-reminder")({
            <p><a href="${appUrl}/relatorio" style="color:#7c5cff">📝 Preencher relatório agora</a></p>`
         );
 
+        const { data: profiles } = await supabaseAdmin
+          .from("profiles")
+          .select("email")
+          .in("id", ids);
+
         let sent = 0;
-        for (const id of ids) {
-          const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-          const to = data?.user?.email;
+        for (const profile of profiles ?? []) {
+          const to = profile.email;
           if (!to) continue;
           try { await sendGmail(to, "📅 Lembrete: relatório semanal - Capixaba", html); sent++; }
           catch (e) { console.error("[weekly-reminder]", e); }

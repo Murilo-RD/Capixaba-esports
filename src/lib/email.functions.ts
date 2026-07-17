@@ -8,18 +8,21 @@ async function getEmailsByRole(role: "owner" | "player"): Promise<string[]> {
     .from("user_roles").select("user_id").eq("role", role);
   const ids = (roles ?? []).map((r) => r.user_id);
   if (!ids.length) return [];
-  const emails: string[] = [];
-  for (const id of ids) {
-    const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-    if (data?.user?.email) emails.push(data.user.email);
-  }
-  return emails;
+  const { data: profiles } = await supabaseAdmin
+    .from("profiles")
+    .select("email")
+    .in("id", ids);
+  return (profiles ?? []).map((profile) => profile.email).filter(Boolean) as string[];
 }
 
 async function getUserEmail(userId: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.auth.admin.getUserById(userId);
-  return data?.user?.email ?? null;
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.email ?? null;
 }
 
 export const notifyNewCandidate = createServerFn({ method: "POST" })

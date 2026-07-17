@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/custom-auth.client";
 import { AppShell } from "@/components/AppShell";
 import { ReportCard } from "@/components/ReportCard";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";
@@ -27,11 +28,11 @@ function MyReports() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-reports"],
     queryFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return [];
+      const user = getCurrentUser();
+      if (!user) return [];
       const { data, error } = await supabase
         .from("weekly_reports").select("*")
-        .eq("user_id", u.user.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Report[];

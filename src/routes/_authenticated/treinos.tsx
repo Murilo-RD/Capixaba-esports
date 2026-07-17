@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Trash2, Youtube, Play, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/custom-auth.client";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,10 +61,10 @@ function TreinosPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
+      const user = getCurrentUser();
+      if (!user) return;
       const { data } = await supabase
-        .from("user_roles").select("role").eq("user_id", u.user.id).eq("role", "owner").maybeSingle();
+        .from("user_roles").select("role").eq("user_id", user.id).eq("role", "owner").maybeSingle();
       setIsOwner(!!data);
     })();
   }, []);
@@ -121,10 +122,10 @@ function CodigosTab({ isOwner }: { isOwner: boolean }) {
     e.preventDefault();
     if (!nome.trim() || !codigo.trim()) return;
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { setSaving(false); return; }
+    const user = getCurrentUser();
+    if (!user) { setSaving(false); return; }
     const { error } = await supabase.from("trainings").insert({
-      nome: nome.trim(), codigo: codigo.trim(), nivel, created_by: u.user.id,
+      nome: nome.trim(), codigo: codigo.trim(), nivel, created_by: user.id,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -277,15 +278,15 @@ function VideosTab({ isOwner }: { isOwner: boolean }) {
     if (!titulo.trim()) { toast.error("Informe o título."); return; }
     if (!ytId) { toast.error("Link do YouTube inválido. Cole a URL completa."); return; }
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { setSaving(false); return; }
+    const user = getCurrentUser();
+    if (!user) { setSaving(false); return; }
     const { error } = await supabase.from("training_videos").insert({
       titulo: titulo.trim(),
       descricao: descricao.trim() || null,
       youtube_url: url.trim(),
       youtube_id: ytId,
       nivel,
-      created_by: u.user.id,
+      created_by: user.id,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }

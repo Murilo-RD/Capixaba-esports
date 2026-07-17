@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { secureWrite } from "@/lib/secure-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,27 +55,34 @@ export function MatchesPanel() {
     if (!form.rival_team_id) { toast.error("Selecione uma equipe rival."); return; }
     if (!form.competition.trim()) { toast.error("Informe a competição."); return; }
     setSaving(true);
-    const { error } = await supabase.from("matches").insert({
-      rival_team_id: form.rival_team_id,
-      competition: form.competition.trim(),
-      our_score: form.our_score,
-      rival_score: form.rival_score,
-      played_at: form.played_at,
-      notes: form.notes || null,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Jogo cadastrado!");
-    setForm({ ...form, competition: "", our_score: 0, rival_score: 0, notes: "" });
-    qc.invalidateQueries({ queryKey: ["matches"] });
+    try {
+      await secureWrite("matches.create", {
+        rival_team_id: form.rival_team_id,
+        competition: form.competition.trim(),
+        our_score: form.our_score,
+        rival_score: form.rival_score,
+        played_at: form.played_at,
+        notes: form.notes || null,
+      });
+      toast.success("Jogo cadastrado!");
+      setForm({ ...form, competition: "", our_score: 0, rival_score: 0, notes: "" });
+      qc.invalidateQueries({ queryKey: ["matches"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function remove(id: string) {
     if (!confirm("Excluir este jogo?")) return;
-    const { error } = await supabase.from("matches").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Jogo removido.");
-    qc.invalidateQueries({ queryKey: ["matches"] });
+    try {
+      await secureWrite("matches.delete", { id });
+      toast.success("Jogo removido.");
+      qc.invalidateQueries({ queryKey: ["matches"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   }
 
   return (

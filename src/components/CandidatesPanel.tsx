@@ -3,9 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/custom-auth";
-import { useServerFn } from "@tanstack/react-start";
-import { rejectCandidate } from "@/lib/admin-users.functions";
-import { notifyMeetingScheduled } from "@/lib/email.functions";
+import { secureWrite } from "@/lib/secure-api";
 import { ApplicationChat } from "@/components/ApplicationChat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,8 +40,6 @@ type Row = {
 
 export function CandidatesPanel() {
   const qc = useQueryClient();
-  const rejectCandidateFn = useServerFn(rejectCandidate);
-  const notifyMeeting = useServerFn(notifyMeetingScheduled);
   const [meetingFor, setMeetingFor] = useState<Row | null>(null);
   const [meetingDate, setMeetingDate] = useState("");
   const [rejectFor, setRejectFor] = useState<Row | null>(null);
@@ -78,36 +74,47 @@ export function CandidatesPanel() {
   async function scheduleMeeting() {
     if (!meetingFor || !meetingDate) return;
     setBusy(true);
-    const { error } = await supabase.from("profiles").update({
-      status: "reuniao", meeting_at: new Date(meetingDate).toISOString(),
-    }).eq("id", meetingFor.user_id);
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Reunião agendada.");
     try {
-      await notifyMeeting({ data: {
-        candidateUserId: meetingFor.user_id,
-        nick: meetingFor.nick,
-        meetingAt: new Date(meetingDate).toISOString(),
-      }});
-    } catch (e) { console.error(e); }
-    setMeetingFor(null); setMeetingDate("");
-    qc.invalidateQueries({ queryKey: ["candidatos"] });
+      const meetingAt = new Date(meetingDate).toISOString();
+      await secureWrite("candidate.status", {
+        userId: meetingFor.user_id,
+        status: "reuniao",
+        meetingAt,
+      });
+      toast.success("Reunião agendada.");
+      setMeetingFor(null); setMeetingDate("");
+      qc.invalidateQueries({ queryKey: ["candidatos"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function approve(r: Row) {
-    const { error } = await supabase.from("profiles")
-      .update({ status: "aprovado" }).eq("id", r.user_id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`${r.nick} aprovado!`);
-    qc.invalidateQueries({ queryKey: ["candidatos"] });
+    setBusy(true);
+    try {
+      await secureWrite("candidate.status", {
+        userId: r.user_id,
+        status: "aprovado",
+        meetingAt: null,
+      });
+      toast.success(`${r.nick} aprovado!`);
+      qc.invalidateQueries({ queryKey: ["candidatos"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function reject() {
     if (!rejectFor) return;
     setBusy(true);
     try {
-      const result = await rejectCandidateFn({ data: { userId: rejectFor.user_id } });
+      const result = await secureWrite<{ warning?: string | null; loginDisabled?: boolean }>("candidate.reject", {
+        userId: rejectFor.user_id,
+      });
       if (result.warning) {
         toast.warning(`${rejectFor.nick} recusado. Login nao desativado: ${result.warning}`);
       } else {

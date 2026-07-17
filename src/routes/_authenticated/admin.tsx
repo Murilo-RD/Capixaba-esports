@@ -8,6 +8,7 @@ import {
   BarChart, Bar,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { ReportCard } from "@/components/ReportCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,15 +59,16 @@ function Admin() {
   async function handleDelete() {
     if (!toDelete) return;
     setDeleting(true);
-    const { error } = await supabase.from("weekly_reports").delete().eq("id", toDelete.id);
-    setDeleting(false);
-    if (error) {
-      toast.error("Erro ao excluir: " + error.message);
-      return;
+    try {
+      await secureWrite("reports.delete", { id: toDelete.id });
+      toast.success("Relatório excluído.");
+      setToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["all-reports"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
     }
-    toast.success("Relatório excluído.");
-    setToDelete(null);
-    queryClient.invalidateQueries({ queryKey: ["all-reports"] });
   }
 
   const byPlayer = useMemo(() => {

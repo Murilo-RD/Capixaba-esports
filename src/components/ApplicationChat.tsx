@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { secureWrite } from "@/lib/secure-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -69,14 +70,14 @@ export function ApplicationChat({
     const content = text.trim();
     if (!content) return;
     setSending(true);
-    const { error } = await supabase.from("application_messages").insert({
-      application_id: applicationId,
-      sender_id: currentUserId,
-      content,
-    });
-    setSending(false);
-    if (error) { toast.error(error.message); return; }
-    setText("");
+    try {
+      await secureWrite("messages.send", { applicationId, content });
+      setText("");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSending(false);
+    }
   }
 
   return (

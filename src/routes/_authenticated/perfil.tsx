@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser, updateStoredUser } from "@/lib/custom-auth";
+import { secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { RefreshCw, User as UserIcon, ExternalLink } from "lucide-react";
-import { syncTrackerProfile } from "@/lib/tracker.functions";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
@@ -31,8 +30,6 @@ const PLATFORMS = [
 
 function PerfilPage() {
   const qc = useQueryClient();
-  const sync = useServerFn(syncTrackerProfile);
-
   const [email, setEmail] = useState("");
   const [uid, setUid] = useState<string | null>(null);
   const [nick, setNick] = useState("");
@@ -89,8 +86,7 @@ function PerfilPage() {
     if (!uid) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("profiles").update({ nick }).eq("id", uid);
-      if (error) throw error;
+      await secureWrite("profile.updateNick", { nick });
       updateStoredUser({ nick });
       toast.success("Perfil atualizado.");
       qc.invalidateQueries({ queryKey: ["profile", uid] });
@@ -104,11 +100,7 @@ function PerfilPage() {
     if (newPwd.length < 6) { toast.error("Senha mínima de 6 caracteres."); return; }
     setLoading(true);
     try {
-      const { error } = await (supabase.rpc as any)("app_change_password", {
-        _user_id: uid,
-        _password: newPwd,
-      });
-      if (error) throw error;
+      await secureWrite("profile.changePassword", { password: newPwd });
       toast.success("Senha alterada.");
       setNewPwd("");
     } catch (err: any) { toast.error(err.message); }
@@ -120,7 +112,7 @@ function PerfilPage() {
     if (!rlId.trim()) { toast.error("Informe seu ID/nome no Rocket League."); return; }
     setSyncing(true);
     try {
-      await sync({ data: { platform, identifier: rlId.trim() } });
+      await secureWrite("profile.syncTracker", { platform, identifier: rlId.trim() });
       toast.success("Perfil sincronizado com a Tracker Network!");
       qc.invalidateQueries({ queryKey: ["profile", uid] });
       qc.invalidateQueries({ queryKey: ["public-roster"] });

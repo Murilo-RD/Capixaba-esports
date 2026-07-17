@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { secureWrite } from "@/lib/secure-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,21 +45,28 @@ export function RivalTeamsPanel() {
   async function save() {
     if (!name.trim()) { toast.error("Informe o nome."); return; }
     setSaving(true);
-    const { error } = await supabase.from("rival_teams").insert({ name: name.trim(), logo_url: logo });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Equipe cadastrada!");
-    setName(""); setLogo(null);
-    qc.invalidateQueries({ queryKey: ["rival-teams"] });
+    try {
+      await secureWrite("rivalTeams.create", { name: name.trim(), logo_url: logo });
+      toast.success("Equipe cadastrada!");
+      setName(""); setLogo(null);
+      qc.invalidateQueries({ queryKey: ["rival-teams"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function remove(id: string) {
     if (!confirm("Excluir esta equipe e todos os jogos ligados a ela?")) return;
-    const { error } = await supabase.from("rival_teams").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Equipe removida.");
-    qc.invalidateQueries({ queryKey: ["rival-teams"] });
-    qc.invalidateQueries({ queryKey: ["matches"] });
+    try {
+      await secureWrite("rivalTeams.delete", { id });
+      toast.success("Equipe removida.");
+      qc.invalidateQueries({ queryKey: ["rival-teams"] });
+      qc.invalidateQueries({ queryKey: ["matches"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   }
 
   return (

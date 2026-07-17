@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/custom-auth";
+import { secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,10 +139,7 @@ function RelatorioPage() {
         evolucao: form.evolucao, melhorar: form.melhorar, objetivo: form.objetivo,
         nota_geral: notaGeral, user_id: user.id,
       };
-      const { error } = editId
-        ? await supabase.from("weekly_reports").update(payload).eq("id", editId)
-        : await supabase.from("weekly_reports").insert(payload);
-      if (error) throw error;
+      await secureWrite("reports.save", { id: editId, report: payload });
       toast.success(editId ? "Relatório atualizado!" : "Relatório enviado!");
       navigate({ to: "/meus-relatorios" });
     } catch (err: any) {

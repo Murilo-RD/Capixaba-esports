@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/custom-auth";
+import { secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { ReportCard } from "@/components/ReportCard";
 import { PlayerEvolutionChart } from "@/components/PlayerEvolutionChart";
@@ -42,12 +43,16 @@ function MyReports() {
   async function handleDelete() {
     if (!toDelete) return;
     setDeleting(true);
-    const { error } = await supabase.from("weekly_reports").delete().eq("id", toDelete.id);
-    setDeleting(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Relatório excluído.");
-    setToDelete(null);
-    qc.invalidateQueries({ queryKey: ["my-reports"] });
+    try {
+      await secureWrite("reports.delete", { id: toDelete.id });
+      toast.success("Relatório excluído.");
+      setToDelete(null);
+      qc.invalidateQueries({ queryKey: ["my-reports"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (

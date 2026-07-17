@@ -38,29 +38,6 @@ type AppAuthUserRow = {
   password_hash: string;
 };
 
-function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
-}
-
-function createSupabaseFetch(supabaseKey: string): typeof fetch {
-  return (input, init) => {
-    const headers = new Headers(
-      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
-    );
-
-    if (init?.headers) {
-      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
-    }
-
-    if (isNewSupabaseApiKey(supabaseKey) && headers.get("Authorization") === `Bearer ${supabaseKey}`) {
-      headers.delete("Authorization");
-    }
-
-    headers.set("apikey", supabaseKey);
-    return fetch(input, { ...init, headers });
-  };
-}
-
 export function createAuthDbClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVER_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
@@ -74,9 +51,6 @@ export function createAuthDbClient() {
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVER_KEY, {
-    global: {
-      fetch: createSupabaseFetch(SUPABASE_SERVER_KEY),
-    },
     auth: {
       storage: undefined,
       persistSession: false,
@@ -133,7 +107,7 @@ export async function verifyAppToken(token: string): Promise<AppAuthClaims> {
   return claims;
 }
 
-async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string): Promise<string> {
   const { pbkdf2, randomBytes } = await import("node:crypto");
   const { promisify } = await import("node:util");
   const pbkdf2Async = promisify(pbkdf2);

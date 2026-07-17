@@ -6,12 +6,12 @@ This project uses Supabase directly. The database schema, policies, triggers, an
 
 Use the Supabase dashboard:
 
-https://supabase.com/dashboard/project/nwfdeqfopahjqwpzmmml
+https://supabase.com/dashboard/project/epoynbqfaqintbgwzszc
 
 - `Table Editor`: view/edit `profiles`, `applications`, `weekly_reports`, `rival_teams`, `matches`, `trainings`, and messages.
-- `Authentication > Users`: view app users, emails, UIDs, and auth status.
+- `Table Editor > app_auth_users`: view app-owned users, emails, and UIDs.
 - `SQL Editor`: run SQL repairs, role changes, and reports.
-- `Project Settings > API`: copy `SUPABASE_URL`, publishable/anon key, and `SUPABASE_SERVICE_ROLE_KEY`.
+- `Project Settings > API`: copy `SUPABASE_URL`, publishable key, secret key, and JWT secret.
 
 ## Required Environment Variables
 
@@ -20,18 +20,20 @@ Copy `.env.example` to `.env` and fill:
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `SUPABASE_JWT_SECRET`
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `PUBLIC_APP_URL`
 
-Only `VITE_*` variables are exposed to the browser. Never create `VITE_SUPABASE_SERVICE_ROLE_KEY`.
+Only `VITE_*` variables are exposed to the browser. Never create `VITE_SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_SECRET_KEY`, or `VITE_SUPABASE_JWT_SECRET`.
 
 ## Applying Migrations
 
 With Supabase CLI installed and linked:
 
 ```powershell
-supabase link --project-ref nwfdeqfopahjqwpzmmml
+supabase link --project-ref epoynbqfaqintbgwzszc
 supabase db push
 ```
 
@@ -43,7 +45,7 @@ supabase/migrations/20260713172000_repair_database_policies.sql
 
 ## Make A User Owner
 
-Find the user's UID in `Authentication > Users`, then run this in `SQL Editor`:
+Find the user's UID in `Table Editor > app_auth_users`, then run this in `SQL Editor`:
 
 ```sql
 insert into public.user_roles (user_id, role)

@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, ShieldOff, Users } from "lucide-react";
 import { toast } from "sonner";
-import { listAdminUsers, setAdminRole } from "@/lib/admin-users.functions";
+import { secureWrite } from "@/lib/secure-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,14 +19,12 @@ type AdminUser = {
 
 export function AdminsPanel() {
   const queryClient = useQueryClient();
-  const listUsers = useServerFn(listAdminUsers);
-  const setRole = useServerFn(setAdminRole);
   const [filter, setFilter] = useState("");
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
-    queryFn: async () => (await listUsers()) as AdminUser[],
+    queryFn: async () => secureWrite<AdminUser[]>("adminUsers.list", {}),
   });
 
   const filtered = useMemo(() => {
@@ -43,7 +40,7 @@ export function AdminsPanel() {
   async function changeAdmin(user: AdminUser, admin: boolean) {
     setBusyUserId(user.id);
     try {
-      await setRole({ data: { userId: user.id, admin } });
+      await secureWrite("adminUsers.setRole", { userId: user.id, admin });
       toast.success(
         admin
           ? `${user.nick ?? user.email ?? "Usuário"} agora é admin.`

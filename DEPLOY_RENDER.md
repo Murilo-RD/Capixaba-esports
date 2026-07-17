@@ -54,6 +54,8 @@ NITRO_PRESET=node-server
 SUPABASE_URL=
 SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
+SUPABASE_JWT_SECRET=
 SUPABASE_PROJECT_ID=
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
@@ -69,4 +71,6 @@ EMAIL_CONNECTION_API_KEY=
 
 Depois do primeiro deploy, coloque em `PUBLIC_APP_URL` a URL real do Render, por exemplo `https://capixaba-es.onrender.com`, e rode um novo deploy.
 
-Nunca crie `VITE_SUPABASE_SERVICE_ROLE_KEY`. Chaves com prefixo `VITE_` ficam expostas no navegador.
+Se sua chave secreta nova comecar com `sb_secret_`, coloque o mesmo valor em `SUPABASE_SECRET_KEY` e `SUPABASE_SERVICE_ROLE_KEY`.
+
+Nunca crie `VITE_SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_SECRET_KEY` ou `VITE_SUPABASE_JWT_SECRET`. Chaves com prefixo `VITE_` ficam expostas no navegador.

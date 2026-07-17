@@ -2,8 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAuthToken, getCurrentUser } from "@/lib/custom-auth";
-import { useServerFn } from "@tanstack/react-start";
-import { notifyNewCandidate } from "@/lib/email.functions";
 import { AppShell } from "@/components/AppShell";
 import { ApplicationChat } from "@/components/ApplicationChat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,7 +71,6 @@ function StatusBanner({ status, meetingAt }: { status: string; meetingAt: string
 
 function CandidaturaPage() {
   const navigate = useNavigate();
-  const notifyNew = useServerFn(notifyNewCandidate);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string>("pendente");
@@ -162,11 +159,9 @@ function CandidaturaPage() {
       if (!user) throw new Error("Sem usuario");
       const payload: any = { ...form, user_id: user.id, available_slots: slots, quick_request: false };
       const saved = await saveApplication(payload);
-      const wasNew = !hasApp;
       toast.success("Candidatura enviada!");
       setHasApp(true);
       if (saved?.id) setAppId(saved.id);
-      if (wasNew) { try { await notifyNew({ data: { nick: form.nick, quick: false } }); } catch {} }
     } catch (err: any) {
       toast.error(err.message);
     } finally { setSaving(false); }
@@ -188,11 +183,9 @@ function CandidaturaPage() {
         quick_request: true,
       };
       const saved = await saveApplication(payload);
-      const wasNew = !hasApp;
       toast.success("Solicitação enviada!");
       setHasApp(true);
       if (saved?.id) setAppId(saved.id);
-      if (wasNew) { try { await notifyNew({ data: { nick: form.nick, quick: true } }); } catch {} }
     } catch (err: any) {
       toast.error(err.message);
     } finally { setSaving(false); }

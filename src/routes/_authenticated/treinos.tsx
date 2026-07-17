@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Trash2, Youtube, Play, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/custom-auth";
+import { secureWrite } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -122,25 +123,28 @@ function CodigosTab({ isOwner }: { isOwner: boolean }) {
     e.preventDefault();
     if (!nome.trim() || !codigo.trim()) return;
     setSaving(true);
-    const user = getCurrentUser();
-    if (!user) { setSaving(false); return; }
-    const { error } = await supabase.from("trainings").insert({
-      nome: nome.trim(), codigo: codigo.trim(), nivel, created_by: user.id,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Treino cadastrado!");
-    setNome(""); setCodigo("");
-    queryClient.invalidateQueries({ queryKey: ["trainings"] });
+    try {
+      await secureWrite("trainings.create", { nome: nome.trim(), codigo: codigo.trim(), nivel });
+      toast.success("Treino cadastrado!");
+      setNome(""); setCodigo("");
+      queryClient.invalidateQueries({ queryKey: ["trainings"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete() {
     if (!toDelete) return;
-    const { error } = await supabase.from("trainings").delete().eq("id", toDelete.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Treino removido.");
-    setToDelete(null);
-    queryClient.invalidateQueries({ queryKey: ["trainings"] });
+    try {
+      await secureWrite("trainings.delete", { id: toDelete.id });
+      toast.success("Treino removido.");
+      setToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["trainings"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   }
 
   const filtered = (data ?? []).filter((t) => filter === "todos" || t.nivel === filter);
@@ -278,30 +282,34 @@ function VideosTab({ isOwner }: { isOwner: boolean }) {
     if (!titulo.trim()) { toast.error("Informe o título."); return; }
     if (!ytId) { toast.error("Link do YouTube inválido. Cole a URL completa."); return; }
     setSaving(true);
-    const user = getCurrentUser();
-    if (!user) { setSaving(false); return; }
-    const { error } = await supabase.from("training_videos").insert({
-      titulo: titulo.trim(),
-      descricao: descricao.trim() || null,
-      youtube_url: url.trim(),
-      youtube_id: ytId,
-      nivel,
-      created_by: user.id,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Vídeo cadastrado!");
-    setTitulo(""); setDescricao(""); setUrl("");
-    qc.invalidateQueries({ queryKey: ["training-videos"] });
+    try {
+      await secureWrite("trainingVideos.create", {
+        titulo: titulo.trim(),
+        descricao: descricao.trim() || null,
+        youtube_url: url.trim(),
+        youtube_id: ytId,
+        nivel,
+      });
+      toast.success("Vídeo cadastrado!");
+      setTitulo(""); setDescricao(""); setUrl("");
+      qc.invalidateQueries({ queryKey: ["training-videos"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete() {
     if (!toDelete) return;
-    const { error } = await supabase.from("training_videos").delete().eq("id", toDelete.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Vídeo removido.");
-    setToDelete(null);
-    qc.invalidateQueries({ queryKey: ["training-videos"] });
+    try {
+      await secureWrite("trainingVideos.delete", { id: toDelete.id });
+      toast.success("Vídeo removido.");
+      setToDelete(null);
+      qc.invalidateQueries({ queryKey: ["training-videos"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   }
 
   const filtered = (data ?? []).filter((t) => filter === "todos" || t.nivel === filter);

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getAuthToken, getCurrentUser } from "@/lib/custom-auth";
+import { getAuthToken, getCurrentUser, updateStoredUser } from "@/lib/custom-auth";
 import { secureRead } from "@/lib/secure-api";
 import { AppShell } from "@/components/AppShell";
 import { ApplicationChat } from "@/components/ApplicationChat";
@@ -95,13 +95,14 @@ function CandidaturaPage() {
       setUserId(user.id);
       const loaded = await secureRead<{ profile: any | null; application: any | null }>("application.mine", {});
       const p = loaded.profile;
+      const app = loaded.application;
+      const effectiveStatus = p?.status === "aprovado" && !app ? "pendente" : (p?.status ?? "pendente");
       if (p) {
-        setStatus(p.status);
+        setStatus(effectiveStatus);
         setMeetingAt(p.meeting_at);
-        if (p.status === "aprovado") { navigate({ to: "/relatorio" }); return; }
         setForm((f) => ({ ...f, nick: p.nick ?? "" }));
       }
-      const app = loaded.application;
+      if (effectiveStatus === "aprovado") { navigate({ to: "/relatorio" }); return; }
       if (app) {
         setHasApp(true);
         setAppId(app.id);
@@ -161,6 +162,9 @@ function CandidaturaPage() {
       const payload: any = { ...form, user_id: user.id, available_slots: slots, quick_request: false };
       const saved = await saveApplication(payload);
       toast.success("Candidatura enviada!");
+      setStatus("pendente");
+      setMeetingAt(null);
+      updateStoredUser({ status: "pendente", nick: form.nick });
       setHasApp(true);
       if (saved?.id) setAppId(saved.id);
     } catch (err: any) {
@@ -185,6 +189,9 @@ function CandidaturaPage() {
       };
       const saved = await saveApplication(payload);
       toast.success("Solicitação enviada!");
+      setStatus("pendente");
+      setMeetingAt(null);
+      updateStoredUser({ status: "pendente", nick: form.nick });
       setHasApp(true);
       if (saved?.id) setAppId(saved.id);
     } catch (err: any) {

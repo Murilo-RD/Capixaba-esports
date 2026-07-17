@@ -225,11 +225,26 @@ async function getProfileStatus(
 
   if (error) throw formatAuthError(error);
 
+  if (!profile) {
+    const { error: insertProfileError } = await supabase
+      .from("profiles")
+      .insert({ id: user.id, email: user.email, nick: user.nick, status: "pendente" });
+
+    if (insertProfileError) throw formatAuthError(insertProfileError);
+
+    return {
+      id: user.id,
+      email: user.email,
+      nick: user.nick,
+      status: "pendente",
+    };
+  }
+
   return {
     id: user.id,
     email: user.email,
-    nick: profile?.nick ?? user.nick,
-    status: profile?.status ?? "pendente",
+    nick: profile.nick ?? user.nick,
+    status: profile.status ?? "pendente",
   };
 }
 
@@ -317,9 +332,15 @@ export async function loginAppUser(input: z.infer<typeof credentialsSchema>): Pr
       .update({ password_hash: newHash })
       .eq("id", (rpcUser as AuthRow).id);
 
-    await ensurePlayerRole(supabase, (rpcUser as AuthRow).id);
-    await ensureBootstrapAdminRole(supabase, (rpcUser as AuthRow).id, (rpcUser as AuthRow).email);
-    return createAuthResponse(rpcUser as AuthRow);
+    const authenticatedUser = rpcUser as AuthRow;
+    await ensurePlayerRole(supabase, authenticatedUser.id);
+    await ensureBootstrapAdminRole(supabase, authenticatedUser.id, authenticatedUser.email);
+    return createAuthResponse(await getProfileStatus(supabase, {
+      id: authenticatedUser.id,
+      email: authenticatedUser.email,
+      nick: authenticatedUser.nick ?? authenticatedUser.email.split("@")[0],
+      password_hash: "",
+    }));
   }
 
   await ensurePlayerRole(supabase, appUser.id);

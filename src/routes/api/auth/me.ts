@@ -10,13 +10,40 @@ export const Route = createFileRoute("/api/auth/me")({
           const claims = await verifyAppToken(token);
           const supabase = createAuthDbClient();
 
-          const { data: profile, error: profileError } = await supabase
+          let { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("id,email,nick,status")
             .eq("id", claims.sub!)
             .maybeSingle();
 
           if (profileError) throw profileError;
+
+          if (!profile) {
+            const { data: authUser, error: authUserError } = await (supabase as any)
+              .from("app_auth_users")
+              .select("id,email,nick")
+              .eq("id", claims.sub!)
+              .maybeSingle();
+
+            if (authUserError) throw authUserError;
+
+            const fallbackEmail = (authUser?.email ?? claims.email ?? "").toLowerCase();
+            const fallbackNick = authUser?.nick ?? fallbackEmail.split("@")[0] ?? null;
+
+            const { data: createdProfile, error: createProfileError } = await supabase
+              .from("profiles")
+              .insert({
+                id: claims.sub!,
+                email: fallbackEmail || null,
+                nick: fallbackNick,
+                status: "pendente",
+              })
+              .select("id,email,nick,status")
+              .single();
+
+            if (createProfileError) throw createProfileError;
+            profile = createdProfile;
+          }
 
           const email = (profile?.email ?? claims.email ?? "").toLowerCase();
           const roleRows: Array<{ user_id: string; role: "player" | "owner" }> = [

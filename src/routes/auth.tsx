@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getCurrentUser, saveAuthSession } from "@/lib/custom-auth";
+import { clearAuthSession, getAuthToken, getCurrentUser, saveAuthSession } from "@/lib/custom-auth";
 
 type AuthSession = {
   token: string;
@@ -38,12 +38,32 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
+    (async () => {
+      const token = getAuthToken();
+      if (!token) return;
+
+      const storedUser = getCurrentUser();
+      const response = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        clearAuthSession();
+        return;
+      }
+
+      const session = await response.json();
+      const user = {
+        id: session.userId,
+        email: session.email ?? storedUser?.email ?? "",
+        nick: session.nick ?? storedUser?.nick ?? null,
+        status: session.status ?? "pendente",
+      };
+      saveAuthSession(token, user);
       navigate({
         to: user.status === "aprovado" ? "/relatorio" : "/candidatura",
       });
-    }
+    })();
   }, [navigate]);
 
   async function handleSubmit(event: React.FormEvent) {

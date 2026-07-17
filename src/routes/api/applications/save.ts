@@ -39,6 +39,14 @@ export const Route = createFileRoute("/api/applications/save")({
 
           if (existingError) throw existingError;
 
+          const { data: profile, error: profileLoadError } = await supabase
+            .from("profiles")
+            .select("id,status")
+            .eq("id", claims.sub!)
+            .maybeSingle();
+
+          if (profileLoadError) throw profileLoadError;
+
           const { data: saved, error: saveError } = existing
             ? await supabase
                 .from("applications")
@@ -54,12 +62,22 @@ export const Route = createFileRoute("/api/applications/save")({
 
           if (saveError) throw saveError;
 
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .update({ nick: body.nick })
-            .eq("id", claims.sub!);
+          const profileEmail = claims.email?.toLowerCase() ?? null;
+          const profileWrite = profile
+            ? existing
+              ? await supabase
+                  .from("profiles")
+                  .update({ nick: body.nick, email: profileEmail })
+                  .eq("id", claims.sub!)
+              : await supabase
+                  .from("profiles")
+                  .update({ nick: body.nick, email: profileEmail, status: "pendente", meeting_at: null })
+                  .eq("id", claims.sub!)
+            : await supabase
+                .from("profiles")
+                .insert({ id: claims.sub!, nick: body.nick, email: profileEmail, status: "pendente" });
 
-          if (profileError) throw profileError;
+          if (profileWrite.error) throw profileWrite.error;
 
           return json({ id: saved?.id ?? existing?.id ?? null, created: !existing });
         } catch (error) {

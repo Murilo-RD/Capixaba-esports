@@ -22,14 +22,34 @@ type Match = {
   rival_teams?: Team;
 };
 
-const defaultForm = {
-  rival_team_id: "",
-  competition: "",
-  our_score: 0,
-  rival_score: 0,
-  played_at: new Date().toISOString().slice(0, 10),
-  notes: "",
-};
+function todayInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function defaultForm() {
+  return {
+    rival_team_id: "",
+    competition: "",
+    our_score: 0,
+    rival_score: 0,
+    played_at: todayInputValue(),
+    notes: "",
+  };
+}
+
+function normalizeDateInput(value: string) {
+  return value.slice(0, 10);
+}
+
+function formatDateBR(value: string) {
+  const [year, month, day] = normalizeDateInput(value).split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
 
 export function MatchesPanel() {
   const qc = useQueryClient();
@@ -49,7 +69,7 @@ export function MatchesPanel() {
 
   function resetForm() {
     setEditing(null);
-    setForm({ ...defaultForm, played_at: new Date().toISOString().slice(0, 10) });
+    setForm(defaultForm());
   }
 
   function startEdit(match: Match) {
@@ -59,7 +79,7 @@ export function MatchesPanel() {
       competition: match.competition,
       our_score: match.our_score,
       rival_score: match.rival_score,
-      played_at: match.played_at.slice(0, 10),
+      played_at: normalizeDateInput(match.played_at),
       notes: match.notes ?? "",
     });
   }
@@ -80,7 +100,7 @@ export function MatchesPanel() {
         competition: form.competition.trim(),
         our_score: form.our_score,
         rival_score: form.rival_score,
-        played_at: form.played_at,
+        played_at: normalizeDateInput(form.played_at),
         notes: form.notes || null,
       };
 
@@ -178,7 +198,7 @@ export function MatchesPanel() {
             <div key={m.id} className="rounded-2xl glass p-4 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-muted-foreground">
-                  {new Date(m.played_at).toLocaleDateString("pt-BR")} - {m.competition}
+                  {formatDateBR(m.played_at)} - {m.competition}
                 </div>
                 <div className="font-bold mt-1">
                   Capixaba {m.our_score} x {m.rival_score} {m.rival_teams?.name}

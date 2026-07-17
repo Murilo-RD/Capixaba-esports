@@ -22,6 +22,14 @@ type Match = {
   rival_teams?: Team;
 };
 
+function formatMatchDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-");
+  const months = ["jan.", "fev.", "mar.", "abr.", "mai.", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."];
+  const monthIndex = Number(month) - 1;
+  if (!year || !day || monthIndex < 0 || monthIndex >= months.length) return value;
+  return `${day} de ${months[monthIndex]} de ${year}`;
+}
+
 function JogosPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["public-matches"],
@@ -94,7 +102,7 @@ function JogosPage() {
               <Card key={m.id} className="glass border-0 hover:shadow-[var(--shadow-glow)] transition-all">
                 <CardContent className="py-5">
                   <div className="text-xs text-muted-foreground mb-3 flex flex-wrap gap-x-3">
-                    <span>{new Date(m.played_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                    <span>{formatMatchDate(m.played_at)}</span>
                     <span>·</span>
                     <span className="text-accent">{m.competition}</span>
                   </div>

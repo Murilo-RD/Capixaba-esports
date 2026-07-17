@@ -42,21 +42,23 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
-function createPublicDbClient() {
+function createAuthDbClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+  const SUPABASE_SERVER_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+  const SUPABASE_KEY = SUPABASE_SERVER_KEY || SUPABASE_PUBLISHABLE_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
     const missing = [
       ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
+      ...(!SUPABASE_KEY ? ["SUPABASE_PUBLISHABLE_KEY ou SUPABASE_SERVICE_ROLE_KEY"] : []),
     ];
     throw new Error(`Configure ${missing.join(", ")} no Render e no .env local.`);
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
     global: {
-      fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
+      fetch: createSupabaseFetch(SUPABASE_KEY),
     },
     auth: {
       storage: undefined,
@@ -114,6 +116,9 @@ function formatDbAuthError(error: { message?: string } | null): Error {
   if (normalized.includes("nick_too_short")) {
     return new Error("Informe um nick com pelo menos 2 caracteres.");
   }
+  if (normalized.includes("user not allowed") || normalized.includes("permission denied")) {
+    return new Error("Cadastro sem permissao no banco. Configure SUPABASE_SERVICE_ROLE_KEY no Render e rode a migration de autenticacao propria.");
+  }
 
   return new Error(message);
 }
@@ -134,7 +139,7 @@ async function createAuthResponse(user: AuthRow) {
 export const registerWithAppAuth = createServerFn({ method: "POST" })
   .inputValidator((data) => registerSchema.parse(data))
   .handler(async ({ data }) => {
-    const supabase = createPublicDbClient();
+    const supabase = createAuthDbClient();
     const { data: user, error } = await (supabase.rpc as any)("app_register", {
       _email: data.email,
       _password: data.password,
@@ -150,7 +155,7 @@ export const registerWithAppAuth = createServerFn({ method: "POST" })
 export const loginWithAppAuth = createServerFn({ method: "POST" })
   .inputValidator((data) => credentialsSchema.parse(data))
   .handler(async ({ data }) => {
-    const supabase = createPublicDbClient();
+    const supabase = createAuthDbClient();
     const { data: user, error } = await (supabase.rpc as any)("app_login", {
       _email: data.email,
       _password: data.password,

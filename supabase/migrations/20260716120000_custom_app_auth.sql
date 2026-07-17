@@ -213,5 +213,7 @@ GRANT EXECUTE ON FUNCTION public.app_login(TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.app_change_password(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.app_disable_user(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.app_delete_user(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.app_register(TEXT, TEXT, TEXT) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.app_login(TEXT, TEXT) TO PUBLIC;
 
 COMMIT;

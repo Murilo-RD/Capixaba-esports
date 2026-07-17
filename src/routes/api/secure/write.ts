@@ -650,6 +650,21 @@ async function runAction({
       return { ok: true };
     }
 
+    case "rivalTeams.update": {
+      requireOwner(owner);
+      const data = z.object({
+        id: z.string().uuid(),
+        name: z.string().trim().min(1),
+        logo_url: z.string().nullable(),
+      }).parse(payload);
+      const { error } = await supabase
+        .from("rival_teams")
+        .update({ name: data.name, logo_url: data.logo_url })
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
     case "rivalTeams.delete": {
       requireOwner(owner);
       const data = z.object({ id: z.string().uuid() }).parse(payload);
@@ -669,6 +684,32 @@ async function runAction({
         notes: z.string().nullable(),
       }).parse(payload);
       const { error } = await supabase.from("matches").insert(data);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    case "matches.update": {
+      requireOwner(owner);
+      const data = z.object({
+        id: z.string().uuid(),
+        rival_team_id: z.string().uuid(),
+        competition: z.string().trim().min(1),
+        our_score: z.number(),
+        rival_score: z.number(),
+        played_at: z.string(),
+        notes: z.string().nullable(),
+      }).parse(payload);
+      const { error } = await supabase
+        .from("matches")
+        .update({
+          rival_team_id: data.rival_team_id,
+          competition: data.competition,
+          our_score: data.our_score,
+          rival_score: data.rival_score,
+          played_at: data.played_at,
+          notes: data.notes,
+        })
+        .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true };
     }

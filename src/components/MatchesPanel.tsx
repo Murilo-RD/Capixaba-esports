@@ -8,25 +8,33 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 type Team = { id: string; name: string; logo_url: string | null };
 type Match = {
-  id: string; rival_team_id: string; competition: string;
-  our_score: number; rival_score: number; played_at: string; notes: string | null;
+  id: string;
+  rival_team_id: string;
+  competition: string;
+  our_score: number;
+  rival_score: number;
+  played_at: string;
+  notes: string | null;
   rival_teams?: Team;
+};
+
+const defaultForm = {
+  rival_team_id: "",
+  competition: "",
+  our_score: 0,
+  rival_score: 0,
+  played_at: new Date().toISOString().slice(0, 10),
+  notes: "",
 };
 
 export function MatchesPanel() {
   const qc = useQueryClient();
-  const [form, setForm] = useState({
-    rival_team_id: "",
-    competition: "",
-    our_score: 0,
-    rival_score: 0,
-    played_at: new Date().toISOString().slice(0, 10),
-    notes: "",
-  });
+  const [form, setForm] = useState(defaultForm);
+  const [editing, setEditing] = useState<Match | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: teams } = useQuery({
@@ -39,21 +47,51 @@ export function MatchesPanel() {
     queryFn: async () => secureRead<Match[]>("matches.list", {}),
   });
 
+  function resetForm() {
+    setEditing(null);
+    setForm({ ...defaultForm, played_at: new Date().toISOString().slice(0, 10) });
+  }
+
+  function startEdit(match: Match) {
+    setEditing(match);
+    setForm({
+      rival_team_id: match.rival_team_id,
+      competition: match.competition,
+      our_score: match.our_score,
+      rival_score: match.rival_score,
+      played_at: match.played_at.slice(0, 10),
+      notes: match.notes ?? "",
+    });
+  }
+
   async function save() {
-    if (!form.rival_team_id) { toast.error("Selecione uma equipe rival."); return; }
-    if (!form.competition.trim()) { toast.error("Informe a competição."); return; }
+    if (!form.rival_team_id) {
+      toast.error("Selecione uma equipe rival.");
+      return;
+    }
+    if (!form.competition.trim()) {
+      toast.error("Informe a competicao.");
+      return;
+    }
     setSaving(true);
     try {
-      await secureWrite("matches.create", {
+      const payload = {
         rival_team_id: form.rival_team_id,
         competition: form.competition.trim(),
         our_score: form.our_score,
         rival_score: form.rival_score,
         played_at: form.played_at,
         notes: form.notes || null,
-      });
-      toast.success("Jogo cadastrado!");
-      setForm({ ...form, competition: "", our_score: 0, rival_score: 0, notes: "" });
+      };
+
+      if (editing) {
+        await secureWrite("matches.update", { id: editing.id, ...payload });
+        toast.success("Jogo atualizado!");
+      } else {
+        await secureWrite("matches.create", payload);
+        toast.success("Jogo cadastrado!");
+      }
+      resetForm();
       qc.invalidateQueries({ queryKey: ["matches"] });
     } catch (err: any) {
       toast.error(err.message);
@@ -67,6 +105,7 @@ export function MatchesPanel() {
     try {
       await secureWrite("matches.delete", { id });
       toast.success("Jogo removido.");
+      if (editing?.id === id) resetForm();
       qc.invalidateQueries({ queryKey: ["matches"] });
     } catch (err: any) {
       toast.error(err.message);
@@ -76,7 +115,11 @@ export function MatchesPanel() {
   return (
     <div className="space-y-6">
       <Card className="glass border-0">
-        <CardHeader><CardTitle className="text-base">➕ Cadastrar jogo</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">
+            {editing ? "Editar jogo" : "Cadastrar jogo"}
+          </CardTitle>
+        </CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-2 sm:col-span-2">
             <Label>Equipe rival</Label>
@@ -95,7 +138,7 @@ export function MatchesPanel() {
             )}
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label>Competição</Label>
+            <Label>Competicao</Label>
             <Input value={form.competition} onChange={(e) => setForm({ ...form, competition: e.target.value })} placeholder="Ex: Copa Capixaba 2026" />
           </div>
           <div className="space-y-2">
@@ -111,11 +154,18 @@ export function MatchesPanel() {
             <Input type="date" value={form.played_at} onChange={(e) => setForm({ ...form, played_at: e.target.value })} />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label>Observações (opcional)</Label>
+            <Label>Observacoes (opcional)</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
-          <div className="sm:col-span-2 flex justify-end">
-            <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Cadastrar jogo"}</Button>
+          <div className="sm:col-span-2 flex justify-end gap-2">
+            {editing && (
+              <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>
+                Cancelar
+              </Button>
+            )}
+            <Button onClick={save} disabled={saving}>
+              {saving ? "Salvando..." : editing ? "Salvar alteracoes" : "Cadastrar jogo"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -128,13 +178,16 @@ export function MatchesPanel() {
             <div key={m.id} className="rounded-2xl glass p-4 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-muted-foreground">
-                  {new Date(m.played_at).toLocaleDateString("pt-BR")} · {m.competition}
+                  {new Date(m.played_at).toLocaleDateString("pt-BR")} - {m.competition}
                 </div>
                 <div className="font-bold mt-1">
-                  Capixaba {m.our_score} × {m.rival_score} {m.rival_teams?.name}
+                  Capixaba {m.our_score} x {m.rival_score} {m.rival_teams?.name}
                 </div>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => remove(m.id)} className="text-destructive hover:text-destructive">
+              <Button size="icon" variant="ghost" onClick={() => startEdit(m)} className="hover:text-primary" title="Editar jogo">
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => remove(m.id)} className="text-destructive hover:text-destructive" title="Excluir jogo">
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

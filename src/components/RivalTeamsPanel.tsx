@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Trash2, Upload } from "lucide-react";
+import { Pencil, Trash2, Upload, X } from "lucide-react";
 
 type Team = { id: string; name: string; logo_url: string | null };
 
@@ -23,6 +23,7 @@ export function RivalTeamsPanel() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [logo, setLogo] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Team | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -30,21 +31,45 @@ export function RivalTeamsPanel() {
     queryFn: async () => secureRead<Team[]>("rivalTeams.list", {}),
   });
 
+  function resetForm() {
+    setEditing(null);
+    setName("");
+    setLogo(null);
+  }
+
+  function startEdit(team: Team) {
+    setEditing(team);
+    setName(team.name);
+    setLogo(team.logo_url);
+  }
+
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 500_000) { toast.error("Logo muito grande (máx 500KB)."); return; }
+    if (f.size > 500_000) {
+      toast.error("Logo muito grande (max 500KB).");
+      return;
+    }
     setLogo(await fileToDataUrl(f));
   }
 
   async function save() {
-    if (!name.trim()) { toast.error("Informe o nome."); return; }
+    if (!name.trim()) {
+      toast.error("Informe o nome.");
+      return;
+    }
     setSaving(true);
     try {
-      await secureWrite("rivalTeams.create", { name: name.trim(), logo_url: logo });
-      toast.success("Equipe cadastrada!");
-      setName(""); setLogo(null);
+      if (editing) {
+        await secureWrite("rivalTeams.update", { id: editing.id, name: name.trim(), logo_url: logo });
+        toast.success("Equipe atualizada!");
+      } else {
+        await secureWrite("rivalTeams.create", { name: name.trim(), logo_url: logo });
+        toast.success("Equipe cadastrada!");
+      }
+      resetForm();
       qc.invalidateQueries({ queryKey: ["rival-teams"] });
+      qc.invalidateQueries({ queryKey: ["matches"] });
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -57,6 +82,7 @@ export function RivalTeamsPanel() {
     try {
       await secureWrite("rivalTeams.delete", { id });
       toast.success("Equipe removida.");
+      if (editing?.id === id) resetForm();
       qc.invalidateQueries({ queryKey: ["rival-teams"] });
       qc.invalidateQueries({ queryKey: ["matches"] });
     } catch (err: any) {
@@ -67,24 +93,40 @@ export function RivalTeamsPanel() {
   return (
     <div className="space-y-6">
       <Card className="glass border-0">
-        <CardHeader><CardTitle className="text-base">➕ Cadastrar equipe rival</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">
+            {editing ? "Editar equipe rival" : "Cadastrar equipe rival"}
+          </CardTitle>
+        </CardHeader>
         <CardContent className="grid sm:grid-cols-[1fr_auto] gap-4 items-end">
           <div className="space-y-2">
             <Label>Nome da equipe</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Furia" />
           </div>
           <div className="space-y-2">
-            <Label>Logo (PNG, máx 500KB)</Label>
+            <Label>Logo (PNG, max 500KB)</Label>
             <div className="flex items-center gap-3">
               {logo && <img src={logo} alt="preview" className="h-12 w-12 object-contain rounded-md glass p-1" />}
               <label className="inline-flex items-center gap-2 rounded-md glass px-3 py-2 text-sm cursor-pointer hover:bg-white/10">
                 <Upload className="h-4 w-4" /> Escolher
                 <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onFile} />
               </label>
+              {logo && (
+                <Button type="button" size="icon" variant="ghost" onClick={() => setLogo(null)} title="Remover logo">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
-          <div className="sm:col-span-2 flex justify-end">
-            <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Cadastrar"}</Button>
+          <div className="sm:col-span-2 flex justify-end gap-2">
+            {editing && (
+              <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>
+                Cancelar
+              </Button>
+            )}
+            <Button onClick={save} disabled={saving}>
+              {saving ? "Salvando..." : editing ? "Salvar alteracoes" : "Cadastrar"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -101,7 +143,10 @@ export function RivalTeamsPanel() {
               <div className="flex-1 min-w-0">
                 <div className="font-bold truncate">{t.name}</div>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => remove(t.id)} className="text-destructive hover:text-destructive">
+              <Button size="icon" variant="ghost" onClick={() => startEdit(t)} className="hover:text-primary" title="Editar equipe">
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => remove(t.id)} className="text-destructive hover:text-destructive" title="Excluir equipe">
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

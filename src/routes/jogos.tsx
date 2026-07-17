@@ -23,6 +23,7 @@ type Match = {
   our_score: number | null;
   rival_score: number | null;
   played_at: string;
+  match_time: string | null;
   notes: string | null;
   rival_teams?: Team;
 };
@@ -33,6 +34,12 @@ function formatMatchDate(value: string) {
   const monthIndex = Number(month) - 1;
   if (!year || !day || monthIndex < 0 || monthIndex >= months.length) return value;
   return `${day} de ${months[monthIndex]} de ${year}`;
+}
+
+function formatMatchSchedule(date: string, time: string | null) {
+  const formattedDate = formatMatchDate(date);
+  const formattedTime = time ? time.slice(0, 5) : "";
+  return formattedTime ? `${formattedDate} as ${formattedTime}` : formattedDate;
 }
 
 function hasMatchResult(match: Match) {
@@ -46,7 +53,8 @@ function JogosPage() {
       const { data, error } = await supabase
         .from("matches")
         .select("*, rival_teams(*)")
-        .order("played_at", { ascending: false });
+        .order("played_at", { ascending: false })
+        .order("match_time", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data as Match[];
     },
@@ -113,7 +121,7 @@ function JogosPage() {
               <Card key={m.id} className="glass border-0 hover:shadow-[var(--shadow-glow)] transition-all">
                 <CardContent className="py-5">
                   <div className="text-xs text-muted-foreground mb-3 flex flex-wrap gap-x-3">
-                    <span>{formatMatchDate(m.played_at)}</span>
+                    <span>{formatMatchSchedule(m.played_at, m.match_time)}</span>
                     <span>-</span>
                     <span className="text-accent">{m.competition}</span>
                   </div>

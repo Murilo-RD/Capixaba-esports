@@ -117,6 +117,7 @@ export type Database = {
           competition: string
           created_at: string
           id: string
+          match_time: string | null
           notes: string | null
           our_score: number | null
           played_at: string
@@ -127,6 +128,7 @@ export type Database = {
           competition: string
           created_at?: string
           id?: string
+          match_time?: string | null
           notes?: string | null
           our_score?: number | null
           played_at?: string
@@ -137,6 +139,7 @@ export type Database = {
           competition?: string
           created_at?: string
           id?: string
+          match_time?: string | null
           notes?: string | null
           our_score?: number | null
           played_at?: string

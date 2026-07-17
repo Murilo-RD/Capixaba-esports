@@ -278,7 +278,8 @@ async function runAction({
       const { data, error } = await supabase
         .from("matches")
         .select("*, rival_teams(*)")
-        .order("played_at", { ascending: false });
+        .order("played_at", { ascending: false })
+        .order("match_time", { ascending: false, nullsFirst: false });
       if (error) throw new Error(error.message);
       return data ?? [];
     }
@@ -681,6 +682,7 @@ async function runAction({
         our_score: z.number().nullable(),
         rival_score: z.number().nullable(),
         played_at: z.string(),
+        match_time: z.string().nullable(),
         notes: z.string().nullable(),
       }).parse(payload);
       const { error } = await supabase.from("matches").insert(data);
@@ -697,6 +699,7 @@ async function runAction({
         our_score: z.number().nullable(),
         rival_score: z.number().nullable(),
         played_at: z.string(),
+        match_time: z.string().nullable(),
         notes: z.string().nullable(),
       }).parse(payload);
       const { error } = await supabase
@@ -707,6 +710,7 @@ async function runAction({
           our_score: data.our_score,
           rival_score: data.rival_score,
           played_at: data.played_at,
+          match_time: data.match_time,
           notes: data.notes,
         })
         .eq("id", data.id);

@@ -19,6 +19,7 @@ type Match = {
   our_score: number | null;
   rival_score: number | null;
   played_at: string;
+  match_time: string | null;
   notes: string | null;
   rival_teams?: Team;
 };
@@ -39,6 +40,7 @@ function defaultForm() {
     rival_score: 0,
     has_result: false,
     played_at: todayInputValue(),
+    match_time: "",
     notes: "",
   };
 }
@@ -51,6 +53,16 @@ function formatDateBR(value: string) {
   const [year, month, day] = normalizeDateInput(value).split("-");
   if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
+}
+
+function normalizeTimeInput(value: string | null) {
+  return value ? value.slice(0, 5) : "";
+}
+
+function formatSchedule(value: string, time: string | null) {
+  const formattedDate = formatDateBR(value);
+  const formattedTime = normalizeTimeInput(time);
+  return formattedTime ? `${formattedDate} as ${formattedTime}` : formattedDate;
 }
 
 function hasMatchResult(match: Match) {
@@ -87,6 +99,7 @@ export function MatchesPanel() {
       rival_score: match.rival_score ?? 0,
       has_result: hasMatchResult(match),
       played_at: normalizeDateInput(match.played_at),
+      match_time: normalizeTimeInput(match.match_time),
       notes: match.notes ?? "",
     });
   }
@@ -108,6 +121,7 @@ export function MatchesPanel() {
         our_score: form.has_result ? form.our_score : null,
         rival_score: form.has_result ? form.rival_score : null,
         played_at: normalizeDateInput(form.played_at),
+        match_time: form.match_time ? normalizeTimeInput(form.match_time) : null,
         notes: form.notes || null,
       };
 
@@ -172,6 +186,10 @@ export function MatchesPanel() {
             <Label>Data</Label>
             <Input type="date" value={form.played_at} onChange={(e) => setForm({ ...form, played_at: e.target.value })} />
           </div>
+          <div className="space-y-2">
+            <Label>Horario</Label>
+            <Input type="time" value={form.match_time} onChange={(e) => setForm({ ...form, match_time: e.target.value })} />
+          </div>
           <div className="sm:col-span-2 flex items-center gap-3 rounded-md glass px-3 py-2">
             <Checkbox
               id="match-has-result"
@@ -221,7 +239,7 @@ export function MatchesPanel() {
               <div key={m.id} className="rounded-2xl glass p-4 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-xs text-muted-foreground">
-                    {formatDateBR(m.played_at)} - {m.competition}
+                    {formatSchedule(m.played_at, m.match_time)} - {m.competition}
                   </div>
                   <div className="font-bold mt-1">
                     {hasResult

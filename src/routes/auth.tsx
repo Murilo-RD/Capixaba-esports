@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import logo from "@/assets/capixaba-logo.png";
@@ -14,7 +13,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getCurrentUser, saveAuthSession } from "@/lib/custom-auth";
-import { loginWithAppAuth, registerWithAppAuth } from "@/lib/auth.functions";
+
+type AuthSession = {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    nick: string | null;
+    status: string | null;
+  };
+};
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar - Capixaba E-Sports" }] }),
@@ -23,8 +31,6 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const createAccount = useServerFn(registerWithAppAuth);
-  const login = useServerFn(loginWithAppAuth);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,14 +52,14 @@ function AuthPage() {
 
     try {
       if (mode === "signup") {
-        const created = await createAccount({ data: { email, password, nick } });
+        const created = await postAuth("/api/auth/register", { email, password, nick });
         saveAuthSession(created.token, created.user);
         toast.success("Conta criada! Preencha sua candidatura.");
         navigate({ to: "/candidatura" });
         return;
       }
 
-      const session = await login({ data: { email, password } });
+      const session = await postAuth("/api/auth/login", { email, password });
       saveAuthSession(session.token, session.user);
       navigate({
         to: session.user.status === "aprovado" ? "/relatorio" : "/candidatura",
@@ -140,6 +146,25 @@ function AuthPage() {
       </Card>
     </div>
   );
+}
+
+async function postAuth(path: string, payload: Record<string, string>): Promise<AuthSession> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await response.json().catch(() => null)) as { error?: string } | AuthSession | null;
+  if (!response.ok) {
+    throw new Error((data && "error" in data && data.error) || "Erro ao autenticar.");
+  }
+
+  if (!data || !("token" in data)) {
+    throw new Error("Resposta invalida do servidor.");
+  }
+
+  return data;
 }
 
 function formatAuthError(error: unknown) {

@@ -160,6 +160,12 @@ export function formatAuthError(error: { message?: string } | null): Error {
   if (normalized.includes("email_exists")) {
     return new Error("Esse email ja esta cadastrado. Entre na sua conta.");
   }
+  if (
+    normalized.includes("duplicate key") &&
+    (normalized.includes("app_auth_users_email_lower_idx") || normalized.includes("email"))
+  ) {
+    return new Error("Esse email ja esta cadastrado. Entre na sua conta.");
+  }
   if (normalized.includes("invalid_credentials")) {
     return new Error("Email ou senha incorretos.");
   }
@@ -257,16 +263,25 @@ export async function registerAppUser(input: z.infer<typeof registerSchema>): Pr
   const { data: existing, error: existingError } = await (supabase as any)
     .from("app_auth_users")
     .select("id")
-    .eq("email", email)
+    .ilike("email", email)
     .maybeSingle();
 
   if (existingError) throw formatAuthError(existingError);
   if (existing) throw new Error("Esse email ja esta cadastrado. Entre na sua conta.");
 
+  const { data: orphanProfile, error: orphanProfileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+
+  if (orphanProfileError) throw formatAuthError(orphanProfileError);
+
   const passwordHash = await hashPassword(input.password);
   const { data: created, error: createError } = await (supabase as any)
     .from("app_auth_users")
-    .insert({ email, password_hash: passwordHash, nick })
+    .insert({ id: orphanProfile?.id, email, password_hash: passwordHash, nick })
     .select("id,email,nick,password_hash")
     .single();
 
@@ -288,7 +303,9 @@ export async function registerAppUser(input: z.infer<typeof registerSchema>): Pr
     await ensurePlayerRole(supabase, user.id);
   } catch (roleError) {
     await (supabase as any).from("app_auth_users").delete().eq("id", user.id);
-    await supabase.from("profiles").delete().eq("id", user.id);
+    if (!orphanProfile?.id) {
+      await supabase.from("profiles").delete().eq("id", user.id);
+    }
     throw roleError;
   }
 
@@ -310,7 +327,7 @@ export async function loginAppUser(input: z.infer<typeof credentialsSchema>): Pr
   const { data: user, error } = await (supabase as any)
     .from("app_auth_users")
     .select("id,email,nick,password_hash")
-    .eq("email", email)
+    .ilike("email", email)
     .maybeSingle();
 
   if (error) throw formatAuthError(error);

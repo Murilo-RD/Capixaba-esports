@@ -55,16 +55,7 @@ export const rejectCandidate = createServerFn({ method: "POST" })
       .eq("user_id", data.userId);
     if (appError) throw new Error(appError.message);
 
-    const { error: disableError } = await (supabase as any)
-      .from("app_auth_users")
-      .delete()
-      .eq("id", data.userId);
-
-    if (disableError) {
-      return { ok: true, loginDisabled: false, warning: disableError.message };
-    }
-
-    return { ok: true, loginDisabled: true };
+    return { ok: true, loginDisabled: false };
   });
 
 export const listAdminUsers = createServerFn({ method: "GET" })

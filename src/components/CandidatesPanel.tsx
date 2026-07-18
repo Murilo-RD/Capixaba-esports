@@ -127,12 +127,9 @@ export function CandidatesPanel() {
         userId: rejectFor.user_id,
       });
       if (result.warning) {
-        toast.warning(`${rejectFor.nick} recusado. Login nao desativado: ${result.warning}`);
+        toast.warning(`${rejectFor.nick} recusado com aviso: ${result.warning}`);
       } else {
-        toast.success(result.loginDisabled
-          ? `${rejectFor.nick} recusado e login desativado.`
-          : `${rejectFor.nick} recusado.`
-        );
+        toast.success(`${rejectFor.nick} recusado.`);
       }
       setRejectFor(null);
       qc.invalidateQueries({ queryKey: ["candidatos"] });
@@ -250,7 +247,7 @@ export function CandidatesPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Recusar candidato?</AlertDialogTitle>
             <AlertDialogDescription>
-              A candidatura de <strong>{rejectFor?.nick}</strong> será removida, o perfil ficará como reprovado e o login dessa conta será desativado.
+              A candidatura de <strong>{rejectFor?.nick}</strong> sera removida da fila e o perfil ficara como reprovado. A conta continuara existindo para o usuario ver o status.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

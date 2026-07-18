@@ -479,12 +479,7 @@ async function runAction({
         .eq("user_id", data.userId);
       if (appError) throw new Error(appError.message);
 
-      const { error: authError } = await (supabase as any)
-        .from("app_auth_users")
-        .delete()
-        .eq("id", data.userId);
-
-      return { ok: true, loginDisabled: !authError, warning: authError?.message ?? null };
+      return { ok: true, loginDisabled: false, warning: null };
     }
 
     case "adminUsers.list": {

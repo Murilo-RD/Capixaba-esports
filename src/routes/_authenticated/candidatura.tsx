@@ -30,7 +30,7 @@ const INTERESSES = [
   "Apoiar a comunidade",
 ];
 
-const DISCORD_URL = "https://discord.com/invite/CsCpcSF7C8";
+const DISCORD_URL = "https://discord.gg/zXFKNtwkGz";
 
 function StatusBanner({ status, meetingAt }: { status: string; meetingAt: string | null }) {
   if (status === "pendente") return (

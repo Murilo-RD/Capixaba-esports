@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const DISCORD_URL = "https://discord.com/invite/CsCpcSF7C8";
+const DISCORD_URL = "https://discord.gg/zXFKNtwkGz";
 
 type Section = "sobre" | "jogadores" | "inscricao";
 

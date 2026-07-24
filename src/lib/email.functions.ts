@@ -58,7 +58,7 @@ export const notifyMeetingScheduled = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data }) => {
     const { sendGmail, wrapHtml } = await import("./email.server");
-    const discordUrl = process.env.DISCORD_URL ?? "https://discord.com/invite/CsCpcSF7C8";
+    const discordUrl = process.env.DISCORD_URL ?? "https://discord.gg/zXFKNtwkGz";
     const to = await getUserEmail(data.candidateUserId);
     if (!to) return { ok: false, reason: "no_email" };
     const when = new Date(data.meetingAt).toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" });

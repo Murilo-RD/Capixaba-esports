@@ -80,14 +80,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Capixaba E-Sports — Rocket League ES" },
-      { name: "description", content: "Time capixaba de Rocket League. Ranking, relatórios semanais, treinos e jogos da equipe." },
+      { title: "Capixaba E-Sports - Time de E-Sports ES" },
+      { name: "description", content: "Time capixaba de E-Sports. Ranking, relatórios semanais, treinos e jogos da equipe." },
       { property: "og:title", content: "Capixaba E-Sports" },
-      { property: "og:description", content: "Time capixaba de Rocket League — do Espírito Santo para o cenário competitivo." },
+      { property: "og:description", content: "Time capixaba de E-Sports - do Espírito Santo para o cenário competitivo." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Capixaba E-Sports" },
-      { name: "twitter:description", content: "Time capixaba de Rocket League — do Espírito Santo para o cenário competitivo." },
+      { name: "twitter:description", content: "Time capixaba de E-Sports - do Espírito Santo para o cenário competitivo." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

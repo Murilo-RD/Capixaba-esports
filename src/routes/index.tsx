@@ -14,8 +14,8 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Capixaba E-Sports — Rocket League Capixaba" },
-      { name: "description", content: "Time capixaba de Rocket League. Conheça a equipe, veja os jogos e junte-se ao projeto." },
+      { title: "Capixaba E-Sports - Time de E-Sports Capixaba" },
+      { name: "description", content: "Time capixaba de E-Sports. Conheça a equipe, veja os jogos e junte-se ao projeto." },
     ],
   }),
   component: Landing,
@@ -100,7 +100,7 @@ function Landing() {
             <img src={logo} alt="Capixaba E-Sports" className="w-56 sm:w-72 md:w-80 mx-auto md:mx-0 drop-shadow-[0_0_40px_rgba(80,140,255,0.5)]" />
             <div className="text-center md:text-left">
               <div className="inline-block rounded-full glass px-4 py-1 text-[10px] sm:text-xs uppercase tracking-widest text-primary mb-3 sm:mb-4">
-                Rocket League · Espírito Santo
+                Time de E-Sports · Espírito Santo
               </div>
               <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight">
                 <span className="text-gradient">CAPIXABA</span>
@@ -108,7 +108,7 @@ function Landing() {
                 <span className="text-accent">E-SPORTS</span>
               </h1>
               <p className="mt-4 sm:mt-5 max-w-xl text-muted-foreground text-sm sm:text-base">
-                Somos o time capixaba de Rocket League — nascido no Espírito Santo, movido pela paixão de transformar
+                Somos um time capixaba de E-Sports — nascido no Espírito Santo, movido pela paixão de transformar
                 talento local em cenário competitivo forte, unido e reconhecido.
               </p>
               <div className="mt-5 sm:mt-6 flex flex-wrap gap-2 sm:gap-3 justify-center md:justify-start">
@@ -144,7 +144,7 @@ function Landing() {
         </h2>
         <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
           <FeatureCard emoji="🚀" title="Projeto capixaba">
-            Uma equipe formada por jogadores do Espírito Santo, com foco em desenvolver o cenário local de Rocket League.
+            Uma equipe formada por jogadores do Espírito Santo, com foco em desenvolver o cenário local de E-Sports.
           </FeatureCard>
           <FeatureCard emoji="🏆" title="Competitivo de verdade">
             Treinos organizados, análise de desempenho semanal e participação em campeonatos oficiais.

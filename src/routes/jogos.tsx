@@ -9,7 +9,7 @@ export const Route = createFileRoute("/jogos")({
   head: () => ({
     meta: [
       { title: "Jogos e Resultados - Capixaba E-Sports" },
-      { name: "description", content: "Acompanhe todos os jogos e resultados da Capixaba E-Sports no Rocket League." },
+      { name: "description", content: "Acompanhe todos os jogos e resultados da Capixaba E-Sports como time de E-Sports." },
     ],
   }),
   component: JogosPage,

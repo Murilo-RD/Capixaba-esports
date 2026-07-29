@@ -315,7 +315,10 @@ function TitlesGrid() {
         .select("id,tournament_name,championship_logo_url,trophy_image_url,achieved_at,notes")
         .order("achieved_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        if (isMissingTeamTitlesTable(error)) return [] as PublicTitle[];
+        throw error;
+      }
       return data as PublicTitle[];
     },
   });
@@ -361,6 +364,21 @@ function formatTitleDate(value: string) {
   const [year, month, day] = value.slice(0, 10).split("-");
   if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
+}
+
+function isMissingTeamTitlesTable(error: unknown) {
+  const err = error as { code?: string; message?: string; details?: string };
+  const text = `${err.code ?? ""} ${err.message ?? ""} ${err.details ?? ""}`.toLowerCase();
+  return (
+    text.includes("team_titles") &&
+    (
+      text.includes("schema cache") ||
+      text.includes("could not find") ||
+      text.includes("does not exist") ||
+      text.includes("42p01") ||
+      text.includes("pgrst205")
+    )
+  );
 }
 
 function PlayersGrid() {

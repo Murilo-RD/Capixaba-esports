@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Award, Pencil, Trash2, Trophy, Upload, X } from "lucide-react";
+import { AlertTriangle, Award, Pencil, Trash2, Trophy, Upload, X } from "lucide-react";
 import { secureRead, secureWrite } from "@/lib/secure-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,7 @@ export function TeamTitlesPanel() {
     notes: "",
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["team-titles"],
     queryFn: async () => secureRead<TeamTitle[]>("teamTitles.list", {}),
   });
@@ -106,7 +106,7 @@ export function TeamTitlesPanel() {
       resetForm();
       qc.invalidateQueries({ queryKey: ["team-titles"] });
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(getTitleErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -120,7 +120,7 @@ export function TeamTitlesPanel() {
       if (editing?.id === id) resetForm();
       qc.invalidateQueries({ queryKey: ["team-titles"] });
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(getTitleErrorMessage(err));
     }
   }
 
@@ -188,6 +188,12 @@ export function TeamTitlesPanel() {
       <div>
         <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Titulos cadastrados</h3>
         {isLoading && <p className="text-muted-foreground text-sm">Carregando...</p>}
+        {error && (
+          <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive flex gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{getTitleErrorMessage(error)}</span>
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-3">
           {(data ?? []).map((title) => (
             <div key={title.id} className="rounded-2xl glass p-4 flex items-center gap-3">
@@ -211,7 +217,7 @@ export function TeamTitlesPanel() {
               </Button>
             </div>
           ))}
-          {!isLoading && !data?.length && <p className="text-muted-foreground text-sm">Nenhum titulo cadastrado ainda.</p>}
+          {!isLoading && !error && !data?.length && <p className="text-muted-foreground text-sm">Nenhum titulo cadastrado ainda.</p>}
         </div>
       </div>
     </div>
@@ -254,4 +260,22 @@ function formatDateBR(value: string) {
   const [year, month, day] = value.slice(0, 10).split("-");
   if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
+}
+
+function getTitleErrorMessage(error: unknown) {
+  const err = error as { code?: string; message?: string; details?: string };
+  const text = `${err.code ?? ""} ${err.message ?? ""} ${err.details ?? ""}`.toLowerCase();
+  if (
+    text.includes("team_titles") &&
+    (
+      text.includes("schema cache") ||
+      text.includes("could not find") ||
+      text.includes("does not exist") ||
+      text.includes("42p01") ||
+      text.includes("pgrst205")
+    )
+  ) {
+    return "A tabela de titulos ainda nao existe no Supabase ou o schema nao recarregou. Rode a migration team_titles no SQL Editor.";
+  }
+  return err.message || "Erro ao carregar titulos.";
 }

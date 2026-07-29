@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/custom-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/capixaba-logo.png";
 import { Trophy, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/jogos")({
   head: () => ({
@@ -47,6 +49,7 @@ function hasMatchResult(match: Match) {
 }
 
 function JogosPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["public-matches"],
     queryFn: async () => {
@@ -59,6 +62,10 @@ function JogosPage() {
       return data as Match[];
     },
   });
+
+  useEffect(() => {
+    setIsLoggedIn(Boolean(getCurrentUser()));
+  }, []);
 
   const total = data?.length ?? 0;
   const completed = data?.filter(hasMatchResult) ?? [];
@@ -79,8 +86,11 @@ function JogosPage() {
               <span className="text-primary">CAPIXABA</span> <span className="text-accent">E-SPORTS</span>
             </span>
           </Link>
-          <Link to="/" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            <ArrowLeft className="h-3 w-3" /> Inicio
+          <Link
+            to={isLoggedIn ? "/perfil" : "/"}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-white/5 transition"
+          >
+            <ArrowLeft className="h-3 w-3" /> {isLoggedIn ? "Voltar ao painel" : "Inicio"}
           </Link>
         </div>
       </header>

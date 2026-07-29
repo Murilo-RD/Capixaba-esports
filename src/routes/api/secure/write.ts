@@ -77,6 +77,22 @@ function requireOwner(owner: boolean) {
   if (!owner) throw new Error("Apenas admins podem executar isso.");
 }
 
+async function isApprovedPlayer(supabase: SupabaseAdmin, userId: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.status === "aprovado";
+}
+
+async function requireApprovedPlayerOrOwner(supabase: SupabaseAdmin, userId: string, owner: boolean) {
+  if (owner) return;
+  if (await isApprovedPlayer(supabase, userId)) return;
+  throw new Error("Apenas jogadores aprovados ou admins podem cadastrar treinos e videos.");
+}
+
 async function requireApplicationAccess(supabase: SupabaseAdmin, applicationId: string, userId: string, owner: boolean) {
   if (owner) return;
   const { data, error } = await supabase
@@ -252,6 +268,7 @@ async function runAction({
     }
 
     case "trainings.page": {
+      const canCreate = owner || (await isApprovedPlayer(supabase, userId));
       const { data: trainings, error: trainingsError } = await supabase
         .from("trainings")
         .select("*")
@@ -265,7 +282,7 @@ async function runAction({
         .order("nivel")
         .order("created_at", { ascending: false });
       if (videosError) throw new Error(videosError.message);
-      return { isOwner: owner, trainings: trainings ?? [], videos: videos ?? [] };
+      return { isOwner: owner, canCreate, trainings: trainings ?? [], videos: videos ?? [] };
     }
 
     case "rivalTeams.list": {
@@ -607,7 +624,7 @@ async function runAction({
     }
 
     case "trainings.create": {
-      requireOwner(owner);
+      await requireApprovedPlayerOrOwner(supabase, userId, owner);
       const data = z.object({
         nome: z.string().trim().min(1),
         codigo: z.string().trim().min(1),
@@ -627,7 +644,7 @@ async function runAction({
     }
 
     case "trainingVideos.create": {
-      requireOwner(owner);
+      await requireApprovedPlayerOrOwner(supabase, userId, owner);
       const data = z.object({
         titulo: z.string().trim().min(1),
         descricao: z.string().nullable(),

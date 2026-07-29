@@ -57,12 +57,17 @@ function extractYouTubeId(input: string): string | null {
 
 function TreinosPage() {
   const [isOwner, setIsOwner] = useState(false);
+  const [canCreate, setCanCreate] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const page = await secureRead<{ isOwner: boolean }>("trainings.page", {});
+      const page = await secureRead<{ isOwner: boolean; canCreate?: boolean }>("trainings.page", {});
       setIsOwner(page.isOwner);
-    })().catch(() => setIsOwner(false));
+      setCanCreate(page.canCreate ?? page.isOwner);
+    })().catch(() => {
+      setIsOwner(false);
+      setCanCreate(false);
+    });
   }, []);
 
   return (
@@ -83,10 +88,10 @@ function TreinosPage() {
         </TabsList>
 
         <TabsContent value="codigos" className="mt-4">
-          <CodigosTab isOwner={isOwner} />
+          <CodigosTab isOwner={isOwner} canCreate={canCreate} />
         </TabsContent>
         <TabsContent value="videos" className="mt-4">
-          <VideosTab isOwner={isOwner} />
+          <VideosTab isOwner={isOwner} canCreate={canCreate} />
         </TabsContent>
       </Tabs>
     </AppShell>
@@ -95,7 +100,7 @@ function TreinosPage() {
 
 /* -------- Códigos -------- */
 
-function CodigosTab({ isOwner }: { isOwner: boolean }) {
+function CodigosTab({ isOwner, canCreate }: { isOwner: boolean; canCreate: boolean }) {
   const queryClient = useQueryClient();
   const [nome, setNome] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -145,7 +150,7 @@ function CodigosTab({ isOwner }: { isOwner: boolean }) {
 
   return (
     <>
-      {isOwner && (
+      {canCreate && (
         <Card className="mb-6 border-primary/30">
           <CardHeader>
             <CardTitle className="text-base">➕ Cadastrar novo código</CardTitle>
@@ -245,7 +250,7 @@ function CodigosTab({ isOwner }: { isOwner: boolean }) {
 
 /* -------- Vídeos -------- */
 
-function VideosTab({ isOwner }: { isOwner: boolean }) {
+function VideosTab({ isOwner, canCreate }: { isOwner: boolean; canCreate: boolean }) {
   const qc = useQueryClient();
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -305,7 +310,7 @@ function VideosTab({ isOwner }: { isOwner: boolean }) {
 
   return (
     <>
-      {isOwner && (
+      {canCreate && (
         <Card className="mb-6 border-primary/30">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">

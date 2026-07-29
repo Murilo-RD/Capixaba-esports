@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/capixaba-logo.png";
 import {
   Swords, LogIn, ClipboardList, UserPlus, MessageCircle, CalendarCheck,
-  CheckCircle2, Users, User as UserIcon, Menu,
+  CheckCircle2, Users, User as UserIcon, Menu, Trophy,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
 
 const DISCORD_URL = "https://discord.gg/zXFKNtwkGz";
 
-type Section = "sobre" | "jogadores" | "inscricao";
+type Section = "sobre" | "titulos" | "jogadores" | "inscricao";
 
 function Landing() {
   const [tab, setTab] = useState<Section>("sobre");
@@ -56,6 +56,7 @@ function Landing() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1 text-sm">
           <NavBtn active={tab === "sobre"} onClick={() => scrollTo("sobre")}>Sobre</NavBtn>
+          <NavBtn active={tab === "titulos"} onClick={() => scrollTo("titulos")}>Titulos</NavBtn>
           <NavBtn active={tab === "jogadores"} onClick={() => scrollTo("jogadores")}>Jogadores</NavBtn>
           <Link to="/jogos" className="rounded-md px-3 py-1.5 hover:bg-white/5 transition text-muted-foreground hover:text-foreground">Jogos</Link>
           <NavBtn active={tab === "inscricao"} onClick={() => scrollTo("inscricao")}>Inscrição</NavBtn>
@@ -79,6 +80,7 @@ function Landing() {
               <SheetHeader><SheetTitle>Menu</SheetTitle></SheetHeader>
               <div className="mt-6 flex flex-col gap-1">
                 <MobileLink onClick={() => scrollTo("sobre")}>Sobre o time</MobileLink>
+                <MobileLink onClick={() => scrollTo("titulos")}>Titulos</MobileLink>
                 <MobileLink onClick={() => scrollTo("jogadores")}>Jogadores</MobileLink>
                 <Link onClick={() => setMenuOpen(false)} to="/jogos" className="rounded-lg glass px-4 py-3 font-medium">
                   Ver jogos
@@ -131,6 +133,7 @@ function Landing() {
       <div className="md:hidden sticky top-0 z-20 glass border-y border-white/10 -mt-2 mb-4">
         <div className="max-w-6xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto no-scrollbar">
           <Chip active={tab === "sobre"} onClick={() => scrollTo("sobre")}>Sobre</Chip>
+          <Chip active={tab === "titulos"} onClick={() => scrollTo("titulos")}>Titulos</Chip>
           <Chip active={tab === "jogadores"} onClick={() => scrollTo("jogadores")}>Jogadores</Chip>
           <Link to="/jogos" className="text-xs px-3 py-1.5 rounded-full glass text-muted-foreground shrink-0">Jogos</Link>
           <Chip active={tab === "inscricao"} onClick={() => scrollTo("inscricao")}>Inscrição</Chip>
@@ -153,6 +156,19 @@ function Landing() {
             Mais do que um time — uma comunidade que apoia jogadores, criadores e organizadores.
           </FeatureCard>
         </div>
+      </section>
+
+      {/* Titulos */}
+      <section id="titulos" className="relative z-10 px-4 sm:px-8 pb-12 sm:pb-16 max-w-6xl mx-auto scroll-mt-24">
+        <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black">
+              <span className="text-gradient">Titulos</span> do time
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Conquistas oficiais da Capixaba E-Sports.</p>
+          </div>
+        </div>
+        <TitlesGrid />
       </section>
 
       {/* Jogadores */}
@@ -280,6 +296,72 @@ type PublicPlayer = {
   mmr_3v3: number | null;
   platform: string | null;
 };
+
+type PublicTitle = {
+  id: string;
+  tournament_name: string;
+  championship_logo_url: string | null;
+  trophy_image_url: string | null;
+  achieved_at: string | null;
+  notes: string | null;
+};
+
+function TitlesGrid() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["public-titles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("team_titles")
+        .select("id,tournament_name,championship_logo_url,trophy_image_url,achieved_at,notes")
+        .order("achieved_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as PublicTitle[];
+    },
+  });
+
+  if (isLoading) return <p className="text-muted-foreground text-sm">Carregando titulos...</p>;
+  if (!data || data.length === 0) {
+    return (
+      <div className="glass rounded-2xl p-6 sm:p-8 text-center">
+        <Trophy className="h-8 w-8 text-primary/60 mx-auto mb-3" />
+        <p className="text-muted-foreground text-sm">Nenhum titulo cadastrado ainda.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      {data.map((title) => (
+        <div key={title.id} className="glass rounded-2xl p-4 sm:p-5 hover:shadow-[var(--shadow-glow)] transition">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] uppercase tracking-widest text-primary mb-1">
+                {title.achieved_at ? formatTitleDate(title.achieved_at) : "Conquista"}
+              </div>
+              <h3 className="font-black text-lg text-gradient truncate">{title.tournament_name}</h3>
+              {title.notes && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{title.notes}</p>}
+            </div>
+            {title.championship_logo_url
+              ? <img src={title.championship_logo_url} alt={title.tournament_name} className="h-16 w-16 object-contain shrink-0" />
+              : <Trophy className="h-12 w-12 text-primary/50 shrink-0" />}
+          </div>
+          {title.trophy_image_url && (
+            <div className="mt-4 rounded-xl glass p-3 grid place-items-center">
+              <img src={title.trophy_image_url} alt="Trofeu" className="h-28 w-full object-contain" />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatTitleDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
 
 function PlayersGrid() {
   const { data, isLoading } = useQuery({

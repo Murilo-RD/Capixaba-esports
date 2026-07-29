@@ -22,6 +22,7 @@ import { CandidatesPanel } from "@/components/CandidatesPanel";
 import { RivalTeamsPanel } from "@/components/RivalTeamsPanel";
 import { MatchesPanel } from "@/components/MatchesPanel";
 import { AdminsPanel } from "@/components/AdminsPanel";
+import { TeamTitlesPanel } from "@/components/TeamTitlesPanel";
 import type { Database } from "@/integrations/supabase/types";
 
 type Report = Database["public"]["Tables"]["weekly_reports"]["Row"];
@@ -116,6 +117,7 @@ function Admin() {
           <TabsTrigger value="admins">Admins</TabsTrigger>
           <TabsTrigger value="equipes">Equipes rivais</TabsTrigger>
           <TabsTrigger value="jogos">Jogos</TabsTrigger>
+          <TabsTrigger value="titulos">Titulos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="jogadores">
@@ -178,6 +180,10 @@ function Admin() {
 
         <TabsContent value="jogos">
           <MatchesPanel />
+        </TabsContent>
+
+        <TabsContent value="titulos">
+          <TeamTitlesPanel />
         </TabsContent>
       </Tabs>
 

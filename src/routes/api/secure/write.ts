@@ -274,6 +274,16 @@ async function runAction({
       return data ?? [];
     }
 
+    case "teamTitles.list": {
+      const { data, error } = await supabase
+        .from("team_titles")
+        .select("*")
+        .order("achieved_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }
+
     case "matches.list": {
       const { data, error } = await supabase
         .from("matches")
@@ -717,6 +727,52 @@ async function runAction({
       requireOwner(owner);
       const data = z.object({ id: z.string().uuid() }).parse(payload);
       const { error } = await supabase.from("matches").delete().eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    case "teamTitles.create": {
+      requireOwner(owner);
+      const data = z.object({
+        tournament_name: z.string().trim().min(1),
+        championship_logo_url: z.string().nullable(),
+        trophy_image_url: z.string().nullable(),
+        achieved_at: z.string().nullable(),
+        notes: z.string().nullable(),
+      }).parse(payload);
+      const { error } = await supabase.from("team_titles").insert(data);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    case "teamTitles.update": {
+      requireOwner(owner);
+      const data = z.object({
+        id: z.string().uuid(),
+        tournament_name: z.string().trim().min(1),
+        championship_logo_url: z.string().nullable(),
+        trophy_image_url: z.string().nullable(),
+        achieved_at: z.string().nullable(),
+        notes: z.string().nullable(),
+      }).parse(payload);
+      const { error } = await supabase
+        .from("team_titles")
+        .update({
+          tournament_name: data.tournament_name,
+          championship_logo_url: data.championship_logo_url,
+          trophy_image_url: data.trophy_image_url,
+          achieved_at: data.achieved_at,
+          notes: data.notes,
+        })
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    case "teamTitles.delete": {
+      requireOwner(owner);
+      const data = z.object({ id: z.string().uuid() }).parse(payload);
+      const { error } = await supabase.from("team_titles").delete().eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true };
     }

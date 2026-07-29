@@ -234,6 +234,36 @@ export type Database = {
         }
         Relationships: []
       }
+      team_titles: {
+        Row: {
+          achieved_at: string | null
+          championship_logo_url: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          tournament_name: string
+          trophy_image_url: string | null
+        }
+        Insert: {
+          achieved_at?: string | null
+          championship_logo_url?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tournament_name: string
+          trophy_image_url?: string | null
+        }
+        Update: {
+          achieved_at?: string | null
+          championship_logo_url?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tournament_name?: string
+          trophy_image_url?: string | null
+        }
+        Relationships: []
+      }
       training_videos: {
         Row: {
           created_at: string

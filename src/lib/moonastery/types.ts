@@ -136,7 +136,7 @@ export interface Instruction {
 }
 export interface Submission {
   id: string;
-  author_id: string;
+  author_id: string | null;
   category: "suggestion" | "technical" | "complaint" | "other";
   title: string;
   description: string;

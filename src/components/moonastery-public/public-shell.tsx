@@ -92,6 +92,9 @@ export function PublicShell({
                     <a href={`/#${id}`}>{name}</a>
                   </Dialog.Close>
                 ))}
+                <Dialog.Close asChild>
+                  <a href="/contato">Denúncias e sugestões</a>
+                </Dialog.Close>
               </nav>
             </Dialog.Content>
           </Dialog.Portal>
@@ -120,6 +123,7 @@ export function PublicShell({
                 {name}
               </a>
             ))}
+            <a href="/contato">Denúncias e sugestões</a>
           </nav>
           <div>
             <h2>Conecte-se</h2>

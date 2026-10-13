@@ -310,18 +310,77 @@ function Reports({ data }: { data: DashboardData }) {
       : (data.players[0]?.id ?? ""),
   );
   const [compare, setCompare] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
   const reports = data.reports
     .filter((report) => report.player_id === playerId)
     .sort((a, b) => b.session_date.localeCompare(a.session_date));
+  const scoredReports = reports.filter((report) => report.source_job_ids.length > 0);
   const player = data.players.find((player) => player.id === playerId);
   const chosen = compare
-    .map((id) => reports.find((report) => report.id === id))
+    .map((id) => scoredReports.find((report) => report.id === id))
     .filter((report): report is Report => Boolean(report));
   return (
     <>
+      {data.membership.role === "owner" && (
+        <Panel
+          title="Relatório para jogador"
+          description="Registre sua avaliação por escrito. Relatórios manuais não alteram notas, cartas ou ranking do GameplayScouter."
+        >
+          {data.players.length ? (
+            <>
+              <button
+                type="button"
+                className="team-button team-button-secondary"
+                onClick={() => setCreating((current) => !current)}
+                aria-expanded={creating}
+              >
+                {creating ? "Cancelar" : "Criar relatório"}
+              </button>
+              {creating && (
+                <EditorForm
+                  key={playerId}
+                  action="reports.create"
+                  submitLabel="Publicar relatório para o jogador"
+                  onSaved={() => setCreating(false)}
+                  initial={{
+                    player_id: playerId,
+                    session_date: new Intl.DateTimeFormat("sv-SE", {
+                      timeZone: "America/Sao_Paulo",
+                    }).format(new Date()),
+                    positives: "",
+                    improvements: "",
+                    instructions: "",
+                    objectives: "",
+                    recommendations: "",
+                    observations: "",
+                  }}
+                  fields={[
+                    {
+                      name: "player_id",
+                      label: "Jogador",
+                      type: "select",
+                      required: true,
+                      options: data.players.map((item) => ({ value: item.id, label: item.nick })),
+                    },
+                    {
+                      name: "session_date",
+                      label: "Data da avaliação",
+                      type: "date",
+                      required: true,
+                    },
+                    ...feedbackFields,
+                  ]}
+                />
+              )}
+            </>
+          ) : (
+            <Empty>Cadastre e aprove um jogador antes de criar relatórios.</Empty>
+          )}
+        </Panel>
+      )}
       <Panel
         title="Histórico de desempenho"
-        description="Notas geradas pelas análises aprovadas e feedback do coach."
+        description="Notas geradas pelas análises aprovadas do GameplayScouter."
       >
         {staff(data.membership.role) && (
           <label className="team-field">
@@ -341,20 +400,20 @@ function Reports({ data }: { data: DashboardData }) {
             </select>
           </label>
         )}
-        {reports.length ? (
+        {scoredReports.length ? (
           <Suspense fallback={<p role="status">Carregando gráfico…</p>}>
-            <HistoryChart reports={reports} />
+            <HistoryChart reports={scoredReports} />
           </Suspense>
         ) : (
           <Empty>Nenhuma análise válida aprovada para este jogador.</Empty>
         )}
       </Panel>
-      {reports.length > 1 && (
+      {scoredReports.length > 1 && (
         <Panel
           title="Comparar relatórios"
           description="Selecione até dois relatórios para comparar os atributos."
         >
-          {reports.map((report) => (
+          {scoredReports.map((report) => (
             <label key={report.id} className="team-compare-option">
               <input
                 type="checkbox"
@@ -407,19 +466,22 @@ function Reports({ data }: { data: DashboardData }) {
       {reports.length > 0 && (
         <Panel
           title="Avaliações e feedback"
-          description="Abra uma sessão para ver a carta e as orientações do treinador."
+          description="Abra uma sessão para ler a avaliação e as orientações recebidas."
         >
           <div className="team-report-list">
             {reports.map((report, index) => (
               <details key={report.id} className="team-report-item" open={index === 0}>
                 <summary>
-                  <span>{date(report.session_date)}</span>
+                  <span>
+                    {date(report.session_date)}
+                    {report.source_job_ids.length === 0 && " · Relatório da gestão"}
+                  </span>
                   <strong>
                     {report.overall == null ? "Sem nota" : `Overall ${report.overall.toFixed(2)}`}
                   </strong>
                 </summary>
                 <div className="team-report-body">
-                  {player && (
+                  {player && report.source_job_ids.length > 0 && (
                     <PlayerCard
                       player={{
                         ...player,
@@ -443,7 +505,7 @@ function Reports({ data }: { data: DashboardData }) {
                         <h3>{field.label}</h3>
                         <p>
                           {(report[field.name as keyof Report] as string) ||
-                            "Ainda não registrado pelo coach."}
+                            "Ainda não registrado."}
                         </p>
                       </div>
                     ))}
@@ -956,6 +1018,7 @@ function Submissions({ data }: { data: DashboardData }) {
           <article className="team-list-item" key={item.id}>
             <p className="team-muted">
               {date(item.created_at)} · {statusLabels[item.status]}
+              {data.membership.role === "owner" && !item.author_id && " · Público sem login"}
             </p>
             <h3>{item.title}</h3>
             <p className="team-prose">{item.description}</p>

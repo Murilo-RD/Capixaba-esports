@@ -47,3 +47,12 @@ export async function publicNews(slug: string): Promise<PublicNews> {
     await fetch(`/api/moonastery?resource=news&slug=${encodeURIComponent(slug)}`),
   );
 }
+export async function publicSubmission(payload: MoonPayload<"submissions.public.create">) {
+  return result<{ ok: true }>(
+    await fetch("/api/moonastery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "submissions.public.create", payload }),
+    }),
+  );
+}

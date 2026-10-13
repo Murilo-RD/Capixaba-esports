@@ -45,6 +45,7 @@ export function createServerClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 export type MoonDb = ReturnType<typeof createServerClient>;
+const publicSubmissionAttempts = new Map<string, number>();
 type PayloadUnion = ReturnType<(typeof actionSchemas)[MoonAction]["parse"]>;
 type UnionKeys<T> = T extends unknown ? keyof T : never;
 type FieldValue<T, K> = T extends unknown ? (K extends keyof T ? T[K] : never) : never;
@@ -225,6 +226,36 @@ export async function handleMoonRequest(request: Request) {
     JSON.parse(new TextDecoder().decode(await boundedBody(request, 8 * 1024 * 1024))),
   );
   const payload = actionSchemas[body.action].parse(body.payload);
+  if (body.action === "submissions.public.create") {
+    const submission = payload as ReturnType<
+      (typeof actionSchemas)["submissions.public.create"]["parse"]
+    >;
+    if (submission.website) return { ok: true };
+    const ip =
+      request.headers.get("cf-connecting-ip") ||
+      request.headers.get("x-real-ip") ||
+      request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ||
+      "unknown";
+    const now = Date.now();
+    const recent = publicSubmissionAttempts.get(ip) || 0;
+    if (now - recent < 15_000)
+      throw new ApiError("Aguarde um momento antes de enviar outra mensagem.", 429, "RATE_LIMITED");
+    publicSubmissionAttempts.set(ip, now);
+    if (publicSubmissionAttempts.size > 2000) {
+      for (const [key, time] of publicSubmissionAttempts)
+        if (now - time > 60_000) publicSubmissionAttempts.delete(key);
+    }
+    const db = createServerClient();
+    await checked(
+      db.from("moon_submissions").insert({
+        category: submission.category,
+        title: submission.title,
+        description: submission.description,
+        author_id: null,
+      }),
+    );
+    return { ok: true };
+  }
   const { db, user, membership } = await requireActor(request);
   if (body.action === "membership.me") return membership;
   if (membership.status !== "approved" || !membership.role)
@@ -401,6 +432,46 @@ export async function handleMoonRequest(request: Request) {
     await requireRow(db, "moon_reports", id);
     const { id: _, ...fields } = data;
     await checked(db.from("moon_reports").update(fields).eq("id", id));
+  } else if (body.action === "reports.create") {
+    allow("owner");
+    const target = await requireRow(db, "moon_players", data.player_id);
+    const activePlayer = await checked<{ id: string } | null>(
+      db
+        .from("moon_memberships")
+        .select("id")
+        .eq("id", target.user_id as string)
+        .eq("role", "player")
+        .eq("status", "approved")
+        .maybeSingle(),
+    );
+    if (!activePlayer) throw new ApiError("Selecione um jogador ativo.", 400, "INVALID_PLAYER");
+    const existing = await checked<{ id: string } | null>(
+      db
+        .from("moon_reports")
+        .select("id")
+        .eq("player_id", data.player_id)
+        .eq("session_date", data.session_date)
+        .maybeSingle(),
+    );
+    if (existing)
+      throw new ApiError(
+        "Este jogador já tem um relatório nessa data. Abra o relatório existente para editar o feedback.",
+        409,
+        "REPORT_EXISTS",
+      );
+    const emptyAttributes = Object.fromEntries(
+      ["VEL", "FIN", "CRI", "DEF", "POS", "BST", "IMP"].map((attribute) => [attribute, null]),
+    );
+    await checked(
+      db.from("moon_reports").insert({
+        ...data,
+        attributes: emptyAttributes,
+        baseline_attributes: emptyAttributes,
+        overall: null,
+        approved_by: user.id,
+        source_job_ids: [],
+      }),
+    );
   } else if (body.action === "instructions.save") {
     allow("owner", "coach");
     if (data.target_player_ids.length) {

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TeamRouteImport } from './routes/team'
+import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NoticiasSlugRouteImport } from './routes/noticias.$slug'
 import { Route as ApiScouterRouteImport } from './routes/api/scouter'
@@ -18,6 +19,11 @@ import { Route as ApiMoonasteryRouteImport } from './routes/api/moonastery'
 const TeamRoute = TeamRouteImport.update({
   id: '/team',
   path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,6 +49,7 @@ const ApiMoonasteryRoute = ApiMoonasteryRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contato': typeof ContatoRoute
   '/team': typeof TeamRoute
   '/api/moonastery': typeof ApiMoonasteryRoute
   '/api/scouter': typeof ApiScouterRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contato': typeof ContatoRoute
   '/team': typeof TeamRoute
   '/api/moonastery': typeof ApiMoonasteryRoute
   '/api/scouter': typeof ApiScouterRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/contato': typeof ContatoRoute
   '/team': typeof TeamRoute
   '/api/moonastery': typeof ApiMoonasteryRoute
   '/api/scouter': typeof ApiScouterRoute
@@ -66,12 +75,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/team' | '/api/moonastery' | '/api/scouter' | '/noticias/$slug'
+    | '/'
+    | '/contato'
+    | '/team'
+    | '/api/moonastery'
+    | '/api/scouter'
+    | '/noticias/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/team' | '/api/moonastery' | '/api/scouter' | '/noticias/$slug'
+  to:
+    | '/'
+    | '/contato'
+    | '/team'
+    | '/api/moonastery'
+    | '/api/scouter'
+    | '/noticias/$slug'
   id:
     | '__root__'
     | '/'
+    | '/contato'
     | '/team'
     | '/api/moonastery'
     | '/api/scouter'
@@ -80,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ContatoRoute: typeof ContatoRoute
   TeamRoute: typeof TeamRoute
   ApiMoonasteryRoute: typeof ApiMoonasteryRoute
   ApiScouterRoute: typeof ApiScouterRoute
@@ -93,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/team'
       fullPath: '/team'
       preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contato': {
+      id: '/contato'
+      path: '/contato'
+      fullPath: '/contato'
+      preLoaderRoute: typeof ContatoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -128,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ContatoRoute: ContatoRoute,
   TeamRoute: TeamRoute,
   ApiMoonasteryRoute: ApiMoonasteryRoute,
   ApiScouterRoute: ApiScouterRoute,

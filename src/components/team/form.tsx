@@ -12,6 +12,7 @@ export type Field = {
     | "text"
     | "textarea"
     | "number"
+    | "date"
     | "checkbox"
     | "select"
     | "image"
@@ -315,7 +316,7 @@ export function EditorForm({
             ) : (
               <input
                 id={id}
-                type={field.type === "number" ? "number" : "text"}
+                type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
                 min={field.type === "number" ? 0 : undefined}
                 required={field.required}
                 value={String(value ?? "")}

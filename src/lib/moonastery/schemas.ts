@@ -8,6 +8,19 @@ const url = z
   .max(2000)
   .refine((v) => /^https?:\/\//i.test(v), "Use uma URL HTTP ou HTTPS.");
 const optionalUrl = url.nullable();
+const sessionDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida.")
+  .refine((value) => {
+    const parsed = new Date(`${value}T12:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }, "Informe uma data válida.")
+  .refine(
+    (value) =>
+      value <=
+      new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(new Date()),
+    "A data do relatório não pode ser futura.",
+  );
 const role = z.enum(["owner", "editor", "coach", "player"]);
 const empty = z.object({}).strict();
 const identifier = z.object({ id }).strict();
@@ -79,6 +92,30 @@ export const actionSchemas = {
       observations: text,
     })
     .strict(),
+  "reports.create": z
+    .object({
+      player_id: id,
+      session_date: sessionDate,
+      positives: text,
+      improvements: text,
+      instructions: text,
+      objectives: text,
+      recommendations: text,
+      observations: text,
+    })
+    .strict()
+    .refine(
+      (v) =>
+        [
+          v.positives,
+          v.improvements,
+          v.instructions,
+          v.objectives,
+          v.recommendations,
+          v.observations,
+        ].some(Boolean),
+      "Preencha ao menos um campo do relatório.",
+    ),
   "instructions.save": z
     .object({
       ...editableId,
@@ -120,6 +157,14 @@ export const actionSchemas = {
       category: z.enum(["suggestion", "technical", "complaint", "other"]),
       title,
       description: z.string().trim().min(1).max(10000),
+    })
+    .strict(),
+  "submissions.public.create": z
+    .object({
+      category: z.enum(["suggestion", "technical", "complaint", "other"]),
+      title,
+      description: z.string().trim().min(1).max(10000),
+      website: z.string().max(200).optional(),
     })
     .strict(),
   "submissions.update": z

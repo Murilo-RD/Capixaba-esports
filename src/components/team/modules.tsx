@@ -846,6 +846,7 @@ function Players({ data }: { data: DashboardData }) {
                       options: [
                         { value: "steam", label: "Steam" },
                         { value: "epic", label: "Epic Games" },
+                        { value: "ps4", label: "PlayStation (PS4)" },
                       ],
                     },
                     { name: "platform_id", label: "ID da conta na plataforma", nullable: true },

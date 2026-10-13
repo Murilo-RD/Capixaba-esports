@@ -107,8 +107,8 @@ export function parseBallchasingReplay(payload: unknown): ParsedReplay {
   if (status === "pending" || status === "processing") throw new ProviderPendingError();
   if (status === "failed") throw new Error("Ballchasing não conseguiu analisar o replay.");
   const replay = replaySchema.parse(payload);
-  if (replay.date_has_timezone === false || replay.date_has_tz === false)
-    throw new Error("Replay sem timezone confiável.");
+  // Ballchasing may normalize the date to UTC (Z) even when the source replay had no timezone metadata.
+  // Trust an explicit RFC3339 offset; sessionNight below still rejects timezone-naive dates.
   const session_date = sessionNight(replay.date);
   const duration = replay.play_duration ?? replay.duration;
   const seen = new Set<string>();

@@ -71,7 +71,7 @@ export const actionSchemas = {
       nick: title,
       bio: text,
       game_id: id.nullable(),
-      platform: z.enum(["steam", "epic"]).nullable(),
+      platform: z.enum(["steam", "epic", "ps4"]).nullable(),
       platform_id: z.string().trim().min(1).max(128).nullable(),
       public_visible: z.boolean(),
     })

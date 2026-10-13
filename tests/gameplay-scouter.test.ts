@@ -125,11 +125,17 @@ test("parser rejects provider pending/failed, missing timezone and duplicate ide
   assert.throws(() => parseBallchasingReplay({ status: "pending" }), ProviderPendingError);
   assert.throws(() => parseBallchasingReplay({ status: "failed" }), /não conseguiu/);
   const invalid = fixture();
+  invalid.date = "2026-10-13T01:30:00";
   invalid.date_has_timezone = false;
   assert.throws(() => parseBallchasingReplay(invalid), /timezone/);
   const duplicate = fixture();
   duplicate.orange.players[0].id = { platform: "steam", id: "765-test" };
   assert.throws(() => parseBallchasingReplay(duplicate), /repetido/);
+});
+test("parser trusts an explicit UTC offset when Ballchasing flags source timezone as missing", () => {
+  const normalizedUtc = fixture();
+  normalizedUtc.date_has_timezone = false;
+  assert.equal(parseBallchasingReplay(normalizedUtc).session_date, "2026-10-12");
 });
 test("night boundary uses America/Sao_Paulo and rejects invalid calendar dates", () => {
   assert.equal(sessionNight("2026-10-13T02:59:59Z"), "2026-10-12");
@@ -161,6 +167,18 @@ test("only exact unique platform/id match identifies a registered player", () =>
       .players.length,
     0,
   );
+});
+test("console platform/id can identify a registered PS4 player", () => {
+  const replay = parseBallchasingReplay(fixture());
+  replay.players[0].platform = "ps4";
+  replay.players[0].platform_id = "psn-player";
+  const evaluation = evaluateReplay(
+    replay,
+    [{ id: "ps4-player", platform: "ps4", platform_id: "psn-player" }],
+    null,
+  );
+  assert.equal(evaluation.players[0].player_id, "ps4-player");
+  assert.equal(evaluation.unmatched.length, 1);
 });
 test("configuration rejects malformed weights, zero stddev and missing provenance", () => {
   const config = configuration();

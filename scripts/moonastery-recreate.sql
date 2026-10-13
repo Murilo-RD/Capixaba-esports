@@ -9,6 +9,7 @@ DROP TRIGGER IF EXISTS moon_auth_user_created ON auth.users;
 DROP POLICY IF EXISTS moon_media_public ON storage.objects;
 
 DROP FUNCTION IF EXISTS public.moon_complete_processing(uuid,integer,jsonb) RESTRICT;
+DROP FUNCTION IF EXISTS public.moon_delete_report(uuid,uuid) RESTRICT;
 DROP FUNCTION IF EXISTS public.moon_change_archetype(uuid,uuid,uuid) RESTRICT;
 DROP FUNCTION IF EXISTS public.moon_approve_job(uuid,uuid) RESTRICT;
 DROP FUNCTION IF EXISTS public.moon_manage_member(uuid,uuid,text,text) RESTRICT;
@@ -299,5 +300,35 @@ CREATE FUNCTION moon_private.validate_weights() RETURNS trigger LANGUAGE plpgsql
  RETURN NEW; END $$;
 REVOKE ALL ON FUNCTION moon_private.validate_weights() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER moon_validate_archetype BEFORE INSERT OR UPDATE OF weights ON public.moon_archetypes FOR EACH ROW EXECUTE FUNCTION moon_private.validate_weights();
+
+-- Source: supabase/migrations/20261013184204_moon_delete_report.sql
+CREATE OR REPLACE FUNCTION public.moon_delete_report(actor_id uuid, target_report_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
+DECLARE player_id_value uuid; latest_report public.moon_reports%ROWTYPE; previous_report public.moon_reports%ROWTYPE; previous_score numeric; was_current_card boolean;
+BEGIN
+ PERFORM moon_private.assert_actor(actor_id,ARRAY['owner']);
+ SELECT r.player_id INTO player_id_value FROM public.moon_reports r WHERE r.id=target_report_id;
+ IF NOT FOUND THEN RAISE EXCEPTION 'REPORT_NOT_FOUND'; END IF;
+ -- Match the player-first lock order in report approval so card restoration is serialized.
+ PERFORM 1 FROM public.moon_players p WHERE p.id=player_id_value FOR UPDATE;
+ PERFORM 1 FROM public.moon_reports r WHERE r.id=target_report_id FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'REPORT_NOT_FOUND'; END IF;
+ SELECT EXISTS(SELECT 1 FROM public.moon_cards c WHERE c.player_id=player_id_value AND c.report_id=target_report_id) INTO was_current_card;
+ DELETE FROM public.moon_reports r WHERE r.id=target_report_id;
+ IF was_current_card THEN
+  SELECT r.* INTO latest_report FROM public.moon_reports r WHERE r.player_id=player_id_value AND r.overall IS NOT NULL ORDER BY r.session_date DESC LIMIT 1;
+  IF FOUND THEN
+   SELECT r.* INTO previous_report FROM public.moon_reports r WHERE r.player_id=player_id_value AND r.overall IS NOT NULL AND r.session_date<latest_report.session_date ORDER BY r.session_date DESC LIMIT 1;
+   previous_score:=CASE WHEN FOUND THEN previous_report.overall ELSE NULL END;
+   INSERT INTO public.moon_cards(player_id,attributes,overall,previous_overall,evolution,report_id,approved_at)
+   VALUES(player_id_value,latest_report.attributes,latest_report.overall,previous_score,CASE WHEN previous_score IS NULL THEN NULL ELSE latest_report.overall-previous_score END,latest_report.id,latest_report.approved_at)
+   ON CONFLICT(player_id) DO UPDATE SET attributes=excluded.attributes,overall=excluded.overall,previous_overall=excluded.previous_overall,evolution=excluded.evolution,report_id=excluded.report_id,approved_at=excluded.approved_at;
+  END IF;
+ END IF;
+ INSERT INTO public.moon_audit(actor_id,action,entity_id,detail)
+ VALUES(actor_id,'reports.delete',target_report_id::text,jsonb_build_object('player_id',player_id_value,'was_current_card',was_current_card,'restored_report_id',CASE WHEN was_current_card THEN latest_report.id ELSE NULL END));
+END $$;
+REVOKE ALL ON FUNCTION public.moon_delete_report(uuid,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.moon_delete_report(uuid,uuid) TO service_role;
 
 COMMIT;

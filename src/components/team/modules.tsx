@@ -528,6 +528,15 @@ function Reports({ data }: { data: DashboardData }) {
                       />
                     </details>
                   )}
+                  {data.membership.role === "owner" && (
+                    <ActionButton
+                      action="reports.delete"
+                      payload={{ id: report.id }}
+                      confirmation={`Excluir permanentemente o relatório de ${player?.nick ?? "este jogador"} de ${date(report.session_date)}?${report.source_job_ids.length ? " A carta e o ranking serão recalculados usando o relatório anterior." : ""}`}
+                    >
+                      Excluir relatório
+                    </ActionButton>
+                  )}
                 </div>
               </details>
             ))}

@@ -116,6 +116,7 @@ export const actionSchemas = {
         ].some(Boolean),
       "Preencha ao menos um campo do relatório.",
     ),
+  "reports.delete": identifier,
   "instructions.save": z
     .object({
       ...editableId,

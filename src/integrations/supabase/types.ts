@@ -816,6 +816,10 @@ export type Database = {
         Args: { target_job_id: string; target_attempt: number; processing_result: Json };
         Returns: undefined;
       };
+      moon_delete_report: {
+        Args: { actor_id: string; target_report_id: string };
+        Returns: undefined;
+      };
       moon_manage_member: {
         Args: { actor_id: string; member_id: string; new_status: string; new_role: string };
         Returns: undefined;

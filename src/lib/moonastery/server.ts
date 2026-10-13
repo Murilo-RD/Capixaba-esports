@@ -87,6 +87,8 @@ export async function checked<T = unknown>(
         "REFERENCE_CONFLICT",
       );
     const message = (error as { message?: string }).message || "";
+    if (message.includes("REPORT_NOT_FOUND"))
+      throw new ApiError("Relatório não encontrado.", 404, "NOT_FOUND");
     if (message.includes("SELF_CHANGE") || message.includes("LAST_OWNER") || code === "42501")
       throw new ApiError(
         "A operação violaria as permissões ou a proteção do proprietário.",
@@ -472,6 +474,11 @@ export async function handleMoonRequest(request: Request) {
         source_job_ids: [],
       }),
     );
+  } else if (body.action === "reports.delete") {
+    allow("owner");
+    await requireRow(db, "moon_reports", id);
+    await checked(db.rpc("moon_delete_report", { actor_id: user.id, target_report_id: id }));
+    return { ok: true };
   } else if (body.action === "instructions.save") {
     allow("owner", "coach");
     if (data.target_player_ids.length) {

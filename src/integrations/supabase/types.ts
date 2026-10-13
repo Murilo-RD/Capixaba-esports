@@ -1,579 +1,834 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
-
+// Generated from the locally applied Moonastery migrations by scripts/database-verify.mjs --generate-types.
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
-      application_messages: {
+      moon_archetypes: {
         Row: {
-          application_id: string
-          content: string
-          created_at: string
-          id: string
-          sender_id: string
-        }
+          id: string;
+          name: string;
+          description: string;
+          weights: Json;
+          active: boolean;
+          created_at: string;
+        };
         Insert: {
-          application_id: string
-          content: string
-          created_at?: string
-          id?: string
-          sender_id: string
-        }
+          id?: string;
+          name: string;
+          description?: string;
+          weights: Json;
+          active?: boolean;
+          created_at?: string;
+        };
         Update: {
-          application_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          sender_id?: string
-        }
+          id?: string;
+          name?: string;
+          description?: string;
+          weights?: Json;
+          active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      moon_attribute_history: {
+        Row: {
+          id: string;
+          player_id: string;
+          report_id: string;
+          attributes: Json;
+          overall: number | null;
+          archetype_id: string | null;
+          reason: string;
+          actor_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          player_id: string;
+          report_id: string;
+          attributes: Json;
+          overall?: number | null;
+          archetype_id?: string | null;
+          reason: string;
+          actor_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          player_id?: string;
+          report_id?: string;
+          attributes?: Json;
+          overall?: number | null;
+          archetype_id?: string | null;
+          reason?: string;
+          actor_id?: string | null;
+          created_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "application_messages_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "applications"
-            referencedColumns: ["id"]
+            foreignKeyName: "moon_attribute_history_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-      applications: {
+          {
+            foreignKeyName: "moon_attribute_history_archetype_id_fkey";
+            columns: ["archetype_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_archetypes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_attribute_history_player_id_fkey";
+            columns: ["player_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_players";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_attribute_history_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_audit: {
         Row: {
-          available_slots: Json
-          cidade: string | null
-          created_at: string
-          discord: string | null
-          do_es: boolean | null
-          entrar_servidor: boolean | null
-          id: string
-          idade: number | null
-          interesse: string | null
-          ja_participou_camp: boolean | null
-          nick: string
-          nome_equipe: string | null
-          objetivo: string | null
-          plataforma: string | null
-          possui_equipe: boolean | null
-          quick_request: boolean
-          rank_atual: string | null
-          updated_at: string
-          user_id: string
-        }
+          id: string;
+          actor_id: string | null;
+          action: string;
+          entity_id: string | null;
+          detail: Json;
+          created_at: string;
+        };
         Insert: {
-          available_slots?: Json
-          cidade?: string | null
-          created_at?: string
-          discord?: string | null
-          do_es?: boolean | null
-          entrar_servidor?: boolean | null
-          id?: string
-          idade?: number | null
-          interesse?: string | null
-          ja_participou_camp?: boolean | null
-          nick: string
-          nome_equipe?: string | null
-          objetivo?: string | null
-          plataforma?: string | null
-          possui_equipe?: boolean | null
-          quick_request?: boolean
-          rank_atual?: string | null
-          updated_at?: string
-          user_id: string
-        }
+          id?: string;
+          actor_id?: string | null;
+          action: string;
+          entity_id?: string | null;
+          detail?: Json;
+          created_at?: string;
+        };
         Update: {
-          available_slots?: Json
-          cidade?: string | null
-          created_at?: string
-          discord?: string | null
-          do_es?: boolean | null
-          entrar_servidor?: boolean | null
-          id?: string
-          idade?: number | null
-          interesse?: string | null
-          ja_participou_camp?: boolean | null
-          nick?: string
-          nome_equipe?: string | null
-          objetivo?: string | null
-          plataforma?: string | null
-          possui_equipe?: boolean | null
-          quick_request?: boolean
-          rank_atual?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      matches: {
-        Row: {
-          competition: string
-          created_at: string
-          id: string
-          match_time: string | null
-          notes: string | null
-          our_score: number | null
-          played_at: string
-          rival_score: number | null
-          rival_team_id: string
-        }
-        Insert: {
-          competition: string
-          created_at?: string
-          id?: string
-          match_time?: string | null
-          notes?: string | null
-          our_score?: number | null
-          played_at?: string
-          rival_score?: number | null
-          rival_team_id: string
-        }
-        Update: {
-          competition?: string
-          created_at?: string
-          id?: string
-          match_time?: string | null
-          notes?: string | null
-          our_score?: number | null
-          played_at?: string
-          rival_score?: number | null
-          rival_team_id?: string
-        }
+          id?: string;
+          actor_id?: string | null;
+          action?: string;
+          entity_id?: string | null;
+          detail?: Json;
+          created_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "matches_rival_team_id_fkey"
-            columns: ["rival_team_id"]
-            isOneToOne: false
-            referencedRelation: "rival_teams"
-            referencedColumns: ["id"]
+            foreignKeyName: "moon_audit_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-      profiles: {
+        ];
+      };
+      moon_cards: {
         Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          id: string
-          meeting_at: string | null
-          mmr_1v1: number | null
-          mmr_2v2: number | null
-          mmr_3v3: number | null
-          nick: string | null
-          platform: string | null
-          rank_1v1: string | null
-          rank_2v2: string | null
-          rank_3v3: string | null
-          rocket_league_id: string | null
-          status: Database["public"]["Enums"]["application_status"]
-          tracker_synced_at: string | null
-        }
+          player_id: string;
+          attributes: Json;
+          overall: number | null;
+          previous_overall: number | null;
+          evolution: number | null;
+          report_id: string;
+          approved_at: string;
+        };
         Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          id: string
-          meeting_at?: string | null
-          mmr_1v1?: number | null
-          mmr_2v2?: number | null
-          mmr_3v3?: number | null
-          nick?: string | null
-          platform?: string | null
-          rank_1v1?: string | null
-          rank_2v2?: string | null
-          rank_3v3?: string | null
-          rocket_league_id?: string | null
-          status?: Database["public"]["Enums"]["application_status"]
-          tracker_synced_at?: string | null
-        }
+          player_id: string;
+          attributes: Json;
+          overall?: number | null;
+          previous_overall?: number | null;
+          evolution?: number | null;
+          report_id: string;
+          approved_at: string;
+        };
         Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          meeting_at?: string | null
-          mmr_1v1?: number | null
-          mmr_2v2?: number | null
-          mmr_3v3?: number | null
-          nick?: string | null
-          platform?: string | null
-          rank_1v1?: string | null
-          rank_2v2?: string | null
-          rank_3v3?: string | null
-          rocket_league_id?: string | null
-          status?: Database["public"]["Enums"]["application_status"]
-          tracker_synced_at?: string | null
-        }
-        Relationships: []
-      }
-      rival_teams: {
+          player_id?: string;
+          attributes?: Json;
+          overall?: number | null;
+          previous_overall?: number | null;
+          evolution?: number | null;
+          report_id?: string;
+          approved_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_cards_player_id_fkey";
+            columns: ["player_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_players";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_cards_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_games: {
         Row: {
-          created_at: string
-          id: string
-          logo_url: string | null
-          name: string
-        }
+          id: string;
+          name: string;
+          slug: string;
+          description: string;
+          image_url: string | null;
+          active: boolean;
+          display_order: number;
+          created_at: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          name: string
-        }
+          id?: string;
+          name: string;
+          slug: string;
+          description?: string;
+          image_url?: string | null;
+          active?: boolean;
+          display_order?: number;
+          created_at?: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          name?: string
-        }
-        Relationships: []
-      }
-      team_titles: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          description?: string;
+          image_url?: string | null;
+          active?: boolean;
+          display_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      moon_instructions: {
         Row: {
-          achieved_at: string | null
-          championship_logo_url: string | null
-          created_at: string
-          id: string
-          notes: string | null
-          tournament_name: string
-          trophy_image_url: string | null
-        }
+          id: string;
+          title: string;
+          description: string;
+          content: string;
+          category: string;
+          tactical: boolean;
+          target_player_ids: string[];
+          media: Json;
+          author_id: string | null;
+          created_at: string;
+        };
         Insert: {
-          achieved_at?: string | null
-          championship_logo_url?: string | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          tournament_name: string
-          trophy_image_url?: string | null
-        }
+          id?: string;
+          title: string;
+          description?: string;
+          content: string;
+          category: string;
+          tactical?: boolean;
+          target_player_ids?: string[];
+          media?: Json;
+          author_id?: string | null;
+          created_at?: string;
+        };
         Update: {
-          achieved_at?: string | null
-          championship_logo_url?: string | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          tournament_name?: string
-          trophy_image_url?: string | null
-        }
-        Relationships: []
-      }
-      training_videos: {
+          id?: string;
+          title?: string;
+          description?: string;
+          content?: string;
+          category?: string;
+          tactical?: boolean;
+          target_player_ids?: string[];
+          media?: Json;
+          author_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_instructions_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_job_players: {
         Row: {
-          created_at: string
-          created_by: string
-          descricao: string | null
-          id: string
-          nivel: Database["public"]["Enums"]["training_level"]
-          titulo: string
-          updated_at: string
-          youtube_id: string
-          youtube_url: string
-        }
+          id: string;
+          job_id: string;
+          player_id: string;
+          attributes: Json;
+          raw_metrics: Json;
+          confidence: Json;
+          alerts: Json;
+          config_snapshot: Json | null;
+        };
         Insert: {
-          created_at?: string
-          created_by: string
-          descricao?: string | null
-          id?: string
-          nivel: Database["public"]["Enums"]["training_level"]
-          titulo: string
-          updated_at?: string
-          youtube_id: string
-          youtube_url: string
-        }
+          id?: string;
+          job_id: string;
+          player_id: string;
+          attributes: Json;
+          raw_metrics: Json;
+          confidence?: Json;
+          alerts?: Json;
+          config_snapshot?: Json | null;
+        };
         Update: {
-          created_at?: string
-          created_by?: string
-          descricao?: string | null
-          id?: string
-          nivel?: Database["public"]["Enums"]["training_level"]
-          titulo?: string
-          updated_at?: string
-          youtube_id?: string
-          youtube_url?: string
-        }
-        Relationships: []
-      }
-      trainings: {
+          id?: string;
+          job_id?: string;
+          player_id?: string;
+          attributes?: Json;
+          raw_metrics?: Json;
+          confidence?: Json;
+          alerts?: Json;
+          config_snapshot?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_job_players_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_job_players_player_id_fkey";
+            columns: ["player_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_players";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_jobs: {
         Row: {
-          codigo: string
-          created_at: string
-          created_by: string
-          id: string
-          nivel: Database["public"]["Enums"]["training_level"]
-          nome: string
-        }
+          id: string;
+          replay_id: string;
+          status: string;
+          attempt: number;
+          session_date: string | null;
+          provider_replay_id: string | null;
+          error_message: string | null;
+          config_snapshot: Json | null;
+          logs: Json;
+          unmatched: Json;
+          warnings: Json;
+          created_at: string;
+          updated_at: string;
+          match_id: string | null;
+        };
         Insert: {
-          codigo: string
-          created_at?: string
-          created_by: string
-          id?: string
-          nivel: Database["public"]["Enums"]["training_level"]
-          nome: string
-        }
+          id?: string;
+          replay_id: string;
+          status?: string;
+          attempt?: number;
+          session_date?: string | null;
+          provider_replay_id?: string | null;
+          error_message?: string | null;
+          config_snapshot?: Json | null;
+          logs?: Json;
+          unmatched?: Json;
+          warnings?: Json;
+          created_at?: string;
+          updated_at?: string;
+          match_id?: string | null;
+        };
         Update: {
-          codigo?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          nivel?: Database["public"]["Enums"]["training_level"]
-          nome?: string
-        }
-        Relationships: []
-      }
-      user_roles: {
+          id?: string;
+          replay_id?: string;
+          status?: string;
+          attempt?: number;
+          session_date?: string | null;
+          provider_replay_id?: string | null;
+          error_message?: string | null;
+          config_snapshot?: Json | null;
+          logs?: Json;
+          unmatched?: Json;
+          warnings?: Json;
+          created_at?: string;
+          updated_at?: string;
+          match_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_jobs_replay_id_fkey";
+            columns: ["replay_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_replays";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_memberships: {
         Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          id: string;
+          email: string;
+          nick: string;
+          status: string;
+          role: string | null;
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          id: string;
+          email: string;
+          nick: string;
+          status?: string;
+          role?: string | null;
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
-      weekly_reports: {
+          id?: string;
+          email?: string;
+          nick?: string;
+          status?: string;
+          role?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_memberships_id_fkey";
+            columns: ["id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_news: {
         Row: {
-          consistencia: number | null
-          created_at: string
-          decisao: number | null
-          evolucao: string | null
-          freeplay: boolean
-          id: string
-          mecanica: number | null
-          mecanicas: boolean
-          melhorar: string | null
-          mmr_atual: string | null
-          nick: string
-          nota_geral: number | null
-          objetivo: string | null
-          posicionamento: number | null
-          rank_atual: string | null
-          replay_review: boolean
-          rotacao: number | null
-          semana: string
-          user_id: string
-          variacao: Database["public"]["Enums"]["mmr_variacao"] | null
-        }
+          id: string;
+          title: string;
+          slug: string;
+          summary: string;
+          content: string;
+          cover_url: string | null;
+          category: string;
+          status: string;
+          author_id: string | null;
+          published_at: string | null;
+          created_at: string;
+          review_note: string;
+          reviewed_by: string | null;
+        };
         Insert: {
-          consistencia?: number | null
-          created_at?: string
-          decisao?: number | null
-          evolucao?: string | null
-          freeplay?: boolean
-          id?: string
-          mecanica?: number | null
-          mecanicas?: boolean
-          melhorar?: string | null
-          mmr_atual?: string | null
-          nick: string
-          nota_geral?: number | null
-          objetivo?: string | null
-          posicionamento?: number | null
-          rank_atual?: string | null
-          replay_review?: boolean
-          rotacao?: number | null
-          semana: string
-          user_id: string
-          variacao?: Database["public"]["Enums"]["mmr_variacao"] | null
-        }
+          id?: string;
+          title: string;
+          slug: string;
+          summary?: string;
+          content: string;
+          cover_url?: string | null;
+          category: string;
+          status?: string;
+          author_id?: string | null;
+          published_at?: string | null;
+          created_at?: string;
+          review_note?: string;
+          reviewed_by?: string | null;
+        };
         Update: {
-          consistencia?: number | null
-          created_at?: string
-          decisao?: number | null
-          evolucao?: string | null
-          freeplay?: boolean
-          id?: string
-          mecanica?: number | null
-          mecanicas?: boolean
-          melhorar?: string | null
-          mmr_atual?: string | null
-          nick?: string
-          nota_geral?: number | null
-          objetivo?: string | null
-          posicionamento?: number | null
-          rank_atual?: string | null
-          replay_review?: boolean
-          rotacao?: number | null
-          semana?: string
-          user_id?: string
-          variacao?: Database["public"]["Enums"]["mmr_variacao"] | null
-        }
-        Relationships: []
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
+          id?: string;
+          title?: string;
+          slug?: string;
+          summary?: string;
+          content?: string;
+          cover_url?: string | null;
+          category?: string;
+          status?: string;
+          author_id?: string | null;
+          published_at?: string | null;
+          created_at?: string;
+          review_note?: string;
+          reviewed_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_news_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_news_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_organization: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          hero_title: string;
+          hero_subtitle: string;
+          contact_email: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string;
+          hero_title: string;
+          hero_subtitle?: string;
+          contact_email?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          hero_title?: string;
+          hero_subtitle?: string;
+          contact_email?: string | null;
+        };
+        Relationships: [];
+      };
+      moon_partners: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          logo_url: string | null;
+          url: string | null;
+          active: boolean;
+          display_order: number;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string;
+          logo_url?: string | null;
+          url?: string | null;
+          active?: boolean;
+          display_order?: number;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          logo_url?: string | null;
+          url?: string | null;
+          active?: boolean;
+          display_order?: number;
+        };
+        Relationships: [];
+      };
+      moon_players: {
+        Row: {
+          id: string;
+          user_id: string;
+          nick: string;
+          bio: string;
+          photo_url: string | null;
+          game_id: string | null;
+          archetype_id: string | null;
+          platform: string | null;
+          platform_id: string | null;
+          public_visible: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          nick: string;
+          bio?: string;
+          photo_url?: string | null;
+          game_id?: string | null;
+          archetype_id?: string | null;
+          platform?: string | null;
+          platform_id?: string | null;
+          public_visible?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          nick?: string;
+          bio?: string;
+          photo_url?: string | null;
+          game_id?: string | null;
+          archetype_id?: string | null;
+          platform?: string | null;
+          platform_id?: string | null;
+          public_visible?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_players_archetype_id_fkey";
+            columns: ["archetype_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_archetypes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_players_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_players_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_processing_history: {
+        Row: { id: string; job_id: string; attempt: number; snapshot: Json; created_at: string };
+        Insert: {
+          id?: string;
+          job_id: string;
+          attempt: number;
+          snapshot: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          job_id?: string;
+          attempt?: number;
+          snapshot?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_processing_history_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_replays: {
+        Row: {
+          id: string;
+          sha256: string;
+          storage_path: string;
+          filename: string;
+          byte_size: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sha256: string;
+          storage_path: string;
+          filename: string;
+          byte_size: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          sha256?: string;
+          storage_path?: string;
+          filename?: string;
+          byte_size?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_replays_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_reports: {
+        Row: {
+          id: string;
+          player_id: string;
+          session_date: string;
+          attributes: Json;
+          baseline_attributes: Json;
+          overall: number | null;
+          previous_overall: number | null;
+          baseline_overall: number | null;
+          archetype_id: string | null;
+          approved_at: string;
+          approved_by: string | null;
+          source_job_ids: string[];
+          positives: string;
+          improvements: string;
+          instructions: string;
+          objectives: string;
+          recommendations: string;
+          observations: string;
+        };
+        Insert: {
+          id?: string;
+          player_id: string;
+          session_date: string;
+          attributes: Json;
+          baseline_attributes: Json;
+          overall?: number | null;
+          previous_overall?: number | null;
+          baseline_overall?: number | null;
+          archetype_id?: string | null;
+          approved_at?: string;
+          approved_by?: string | null;
+          source_job_ids?: string[];
+          positives?: string;
+          improvements?: string;
+          instructions?: string;
+          objectives?: string;
+          recommendations?: string;
+          observations?: string;
+        };
+        Update: {
+          id?: string;
+          player_id?: string;
+          session_date?: string;
+          attributes?: Json;
+          baseline_attributes?: Json;
+          overall?: number | null;
+          previous_overall?: number | null;
+          baseline_overall?: number | null;
+          archetype_id?: string | null;
+          approved_at?: string;
+          approved_by?: string | null;
+          source_job_ids?: string[];
+          positives?: string;
+          improvements?: string;
+          instructions?: string;
+          objectives?: string;
+          recommendations?: string;
+          observations?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_reports_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_reports_archetype_id_fkey";
+            columns: ["archetype_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_archetypes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moon_reports_player_id_fkey";
+            columns: ["player_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_players";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      moon_scoring: {
+        Row: { id: string; config: Json; updated_at: string };
+        Insert: { id?: string; config: Json; updated_at?: string };
+        Update: { id?: string; config?: Json; updated_at?: string };
+        Relationships: [];
+      };
+      moon_socials: {
+        Row: {
+          id: string;
+          platform: string;
+          icon: string;
+          url: string;
+          active: boolean;
+          display_order: number;
+        };
+        Insert: {
+          id?: string;
+          platform: string;
+          icon?: string;
+          url: string;
+          active?: boolean;
+          display_order?: number;
+        };
+        Update: {
+          id?: string;
+          platform?: string;
+          icon?: string;
+          url?: string;
+          active?: boolean;
+          display_order?: number;
+        };
+        Relationships: [];
+      };
+      moon_submissions: {
+        Row: {
+          id: string;
+          author_id: string | null;
+          category: string;
+          title: string;
+          description: string;
+          status: string;
+          response: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          author_id?: string | null;
+          category: string;
+          title: string;
+          description: string;
+          status?: string;
+          response?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          author_id?: string | null;
+          category?: string;
+          title?: string;
+          description?: string;
+          status?: string;
+          response?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moon_submissions_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "moon_memberships";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
+    Views: { [_ in never]: never };
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-    }
-    Enums: {
-      app_role: "owner" | "player"
-      application_status: "pendente" | "reuniao" | "aprovado" | "reprovado"
-      mmr_variacao: "subiu" | "manteve" | "caiu"
-      training_level:
-        | "platina"
-        | "diamante"
-        | "champion"
-        | "grand_champion"
-        | "ssl"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      app_role: ["owner", "player"],
-      application_status: ["pendente", "reuniao", "aprovado", "reprovado"],
-      mmr_variacao: ["subiu", "manteve", "caiu"],
-      training_level: [
-        "platina",
-        "diamante",
-        "champion",
-        "grand_champion",
-        "ssl",
-      ],
-    },
-  },
-} as const
+      moon_approve_job: { Args: { actor_id: string; job_id: string }; Returns: Json };
+      moon_change_archetype: {
+        Args: { actor_id: string; player_id: string; archetype_id: string };
+        Returns: undefined;
+      };
+      moon_complete_processing: {
+        Args: { target_job_id: string; target_attempt: number; processing_result: Json };
+        Returns: undefined;
+      };
+      moon_manage_member: {
+        Args: { actor_id: string; member_id: string; new_status: string; new_role: string };
+        Returns: undefined;
+      };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+};
+export type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
+export type TablesInsert<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Insert"];
+export type TablesUpdate<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Update"];
+export const Constants = { public: { Enums: {} } } as const;

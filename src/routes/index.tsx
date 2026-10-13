@@ -1,431 +1,384 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/capixaba-logo.png";
+import { createFileRoute } from "@tanstack/react-router";
 import {
-  Swords, LogIn, ClipboardList, UserPlus, MessageCircle, CalendarCheck,
-  CheckCircle2, Users, User as UserIcon, Menu, Trophy,
+  ArrowDown,
+  ArrowUpRight,
+  Crosshair,
+  Gamepad2,
+  Newspaper,
+  Rocket,
+  Shield,
 } from "lucide-react";
-import { useState } from "react";
+import mascot from "@/assets/moonastery-mascot.png";
+import type { Game, PublicHome, PublicNews } from "@/lib/moonastery/types";
+import { ContentCarousel } from "@/components/moonastery-public/carousel";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
-} from "@/components/ui/sheet";
+  PublicEmptyState,
+  PublicError,
+  PublicLoading,
+} from "@/components/moonastery-public/empty-state";
+import { PublicImage } from "@/components/moonastery-public/media";
+import { formatPublicDate } from "@/components/moonastery-public/dates";
+import { PublicPlayerDetails } from "@/components/moonastery-public/player-card";
+import { usePublicHome } from "@/components/moonastery-public/public-data";
+import { PublicShell, SocialIcon } from "@/components/moonastery-public/public-shell";
 
 export const Route = createFileRoute("/")({
+  component: Home,
+  validateSearch: (search: Record<string, unknown>): { modalidade?: string } => ({
+    modalidade: typeof search.modalidade === "string" ? search.modalidade : undefined,
+  }),
   head: () => ({
     meta: [
-      { title: "Capixaba E-Sports - Time de E-Sports Capixaba" },
-      { name: "description", content: "Time capixaba de E-Sports. Conheça a equipe, veja os jogos e junte-se ao projeto." },
+      { title: "Moonastery E-Sports | Uma nova órbita competitiva" },
+      {
+        name: "description",
+        content:
+          "Conheça a Moonastery E-Sports, seus jogadores, modalidades, notícias e parceiros.",
+      },
     ],
   }),
-  component: Landing,
 });
 
-const DISCORD_URL = "https://discord.gg/zXFKNtwkGz";
-
-type Section = "sobre" | "titulos" | "jogadores" | "inscricao";
-
-function Landing() {
-  const [tab, setTab] = useState<Section>("sobre");
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const scrollTo = (id: Section) => {
-    setTab(id);
-    setMenuOpen(false);
-    // Espera o layout render/troca de tab, depois faz scroll
-    requestAnimationFrame(() => {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  };
-
+function Home() {
+  const home = usePublicHome();
+  const organization = home.data?.organization;
   return (
-    <div className="min-h-screen text-foreground relative overflow-hidden">
-      <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-primary/25 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 rounded-full bg-accent/25 blur-3xl pointer-events-none" />
-
-      {/* Nav */}
-      <header className="relative z-20 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
-        <Link to="/" className="flex items-center gap-3 min-w-0">
-          <img src={logo} alt="Capixaba" className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-[0_0_20px_rgba(80,140,255,0.5)]" />
-          <span className="font-black tracking-tight text-sm sm:text-base truncate">
-            <span className="text-primary">CAPIXABA</span> <span className="text-accent">E-SPORTS</span>
-          </span>
-        </Link>
-
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1 text-sm">
-          <NavBtn active={tab === "sobre"} onClick={() => scrollTo("sobre")}>Sobre</NavBtn>
-          <NavBtn active={tab === "titulos"} onClick={() => scrollTo("titulos")}>Titulos</NavBtn>
-          <NavBtn active={tab === "jogadores"} onClick={() => scrollTo("jogadores")}>Jogadores</NavBtn>
-          <Link to="/jogos" className="rounded-md px-3 py-1.5 hover:bg-white/5 transition text-muted-foreground hover:text-foreground">Jogos</Link>
-          <NavBtn active={tab === "inscricao"} onClick={() => scrollTo("inscricao")}>Inscrição</NavBtn>
-          <Link to="/auth" className="ml-2 rounded-full bg-primary text-primary-foreground px-4 py-1.5 font-bold hover:shadow-[var(--shadow-glow)] transition inline-flex items-center gap-1.5">
-            <LogIn className="h-4 w-4" /> Entrar
-          </Link>
-        </nav>
-
-        {/* Mobile menu */}
-        <div className="md:hidden flex items-center gap-2">
-          <Link to="/auth" className="rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1">
-            <LogIn className="h-3.5 w-3.5" /> Entrar
-          </Link>
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <button aria-label="Menu" className="glass rounded-md p-2">
-                <Menu className="h-5 w-5" />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-72">
-              <SheetHeader><SheetTitle>Menu</SheetTitle></SheetHeader>
-              <div className="mt-6 flex flex-col gap-1">
-                <MobileLink onClick={() => scrollTo("sobre")}>Sobre o time</MobileLink>
-                <MobileLink onClick={() => scrollTo("titulos")}>Titulos</MobileLink>
-                <MobileLink onClick={() => scrollTo("jogadores")}>Jogadores</MobileLink>
-                <Link onClick={() => setMenuOpen(false)} to="/jogos" className="rounded-lg glass px-4 py-3 font-medium">
-                  Ver jogos
-                </Link>
-                <MobileLink onClick={() => scrollTo("inscricao")}>Como me inscrever</MobileLink>
-                <a onClick={() => setMenuOpen(false)} href={DISCORD_URL} target="_blank" rel="noreferrer" className="rounded-lg glass px-4 py-3 font-medium">
-                  🎧 Discord
+    <PublicShell organization={organization} socials={home.data?.socials}>
+      <main id="conteudo">
+        <section id="inicio" className="moon-hero" aria-labelledby="hero-title">
+          <div className="moon-container moon-hero-layout">
+            <div className="moon-hero-copy">
+              <p className="moon-hero-intro">Moonastery E-Sports</p>
+              <h1 id="hero-title">
+                {organization?.hero_title || (
+                  <>
+                    Uma nova
+                    <br />
+                    órbita competitiva.
+                  </>
+                )}
+              </h1>
+              <p className="moon-hero-description">
+                {organization?.hero_subtitle ||
+                  "Talento em evolução. Mentalidade de equipe. O próximo capítulo começa dentro de jogo."}
+              </p>
+              <div className="moon-hero-actions">
+                <a className="moon-button" href="#equipe">
+                  Conheça a equipe <ArrowUpRight aria-hidden="true" size={19} />
+                </a>
+                <a className="moon-text-link" href="#jogos">
+                  Nossas modalidades <ArrowDown aria-hidden="true" size={17} />
                 </a>
               </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section className="relative z-10 px-4 sm:px-8 pt-6 sm:pt-10 pb-10 sm:pb-16 max-w-6xl mx-auto">
-        <div className="glass rounded-3xl p-6 sm:p-12 animate-fade-in">
-          <div className="grid md:grid-cols-[auto_1fr] gap-6 sm:gap-8 items-center">
-            <img src={logo} alt="Capixaba E-Sports" className="w-56 sm:w-72 md:w-80 mx-auto md:mx-0 drop-shadow-[0_0_40px_rgba(80,140,255,0.5)]" />
-            <div className="text-center md:text-left">
-              <div className="inline-block rounded-full glass px-4 py-1 text-[10px] sm:text-xs uppercase tracking-widest text-primary mb-3 sm:mb-4">
-                Time de E-Sports · Espírito Santo
+            </div>
+            <div className="moon-hero-art">
+              <div className="moon-orbit moon-orbit-cyan" aria-hidden="true" />
+              <div className="moon-orbit moon-orbit-pink" aria-hidden="true" />
+              <div className="moon-lunar-disc">
+                <img
+                  src={mascot}
+                  alt="Lunático, mascote oficial da Moonastery, uma lua com uniforme preto, ciano e magenta"
+                  width={1254}
+                  height={1254}
+                  fetchPriority="high"
+                />
               </div>
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight">
-                <span className="text-gradient">CAPIXABA</span>
-                <br />
-                <span className="text-accent">E-SPORTS</span>
-              </h1>
-              <p className="mt-4 sm:mt-5 max-w-xl text-muted-foreground text-sm sm:text-base">
-                Somos um time capixaba de E-Sports — nascido no Espírito Santo, movido pela paixão de transformar
-                talento local em cenário competitivo forte, unido e reconhecido.
-              </p>
-              <div className="mt-5 sm:mt-6 flex flex-wrap gap-2 sm:gap-3 justify-center md:justify-start">
-                <Link to="/jogos" className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-bold hover:shadow-[var(--shadow-glow)] hover:scale-[1.03] transition-all">
-                  <Swords className="h-4 w-4 sm:h-5 sm:w-5" /> Ver jogos
-                </Link>
-                <button onClick={() => scrollTo("jogadores")} className="inline-flex items-center gap-2 rounded-full glass px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium hover:shadow-[var(--shadow-glow)] transition-all">
-                  <Users className="h-4 w-4 sm:h-5 sm:w-5" /> Nossos jogadores
-                </button>
-                <button onClick={() => scrollTo("inscricao")} className="inline-flex items-center gap-2 rounded-full glass px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium hover:shadow-[var(--shadow-glow)] transition-all">
-                  <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5" /> Inscrever
-                </button>
-              </div>
+              <span className="moon-mascot-caption">
+                Lunático <span>Mascote oficial</span>
+              </span>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Section switcher chips (mobile-first) */}
-      <div className="md:hidden sticky top-0 z-20 glass border-y border-white/10 -mt-2 mb-4">
-        <div className="max-w-6xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto no-scrollbar">
-          <Chip active={tab === "sobre"} onClick={() => scrollTo("sobre")}>Sobre</Chip>
-          <Chip active={tab === "titulos"} onClick={() => scrollTo("titulos")}>Titulos</Chip>
-          <Chip active={tab === "jogadores"} onClick={() => scrollTo("jogadores")}>Jogadores</Chip>
-          <Link to="/jogos" className="text-xs px-3 py-1.5 rounded-full glass text-muted-foreground shrink-0">Jogos</Link>
-          <Chip active={tab === "inscricao"} onClick={() => scrollTo("inscricao")}>Inscrição</Chip>
-        </div>
-      </div>
-
-      {/* Sobre */}
-      <section id="sobre" className="relative z-10 px-4 sm:px-8 pb-12 sm:pb-16 max-w-6xl mx-auto scroll-mt-24">
-        <h2 className="text-2xl sm:text-3xl font-black mb-5">
-          Sobre a <span className="text-gradient">nossa equipe</span>
-        </h2>
-        <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
-          <FeatureCard emoji="🚀" title="Projeto capixaba">
-            Uma equipe formada por jogadores do Espírito Santo, com foco em desenvolver o cenário local de E-Sports.
-          </FeatureCard>
-          <FeatureCard emoji="🏆" title="Competitivo de verdade">
-            Treinos organizados, análise de desempenho semanal e participação em campeonatos oficiais.
-          </FeatureCard>
-          <FeatureCard emoji="💙🩷" title="Comunidade unida">
-            Mais do que um time — uma comunidade que apoia jogadores, criadores e organizadores.
-          </FeatureCard>
-        </div>
-      </section>
-
-      {/* Titulos */}
-      <section id="titulos" className="relative z-10 px-4 sm:px-8 pb-12 sm:pb-16 max-w-6xl mx-auto scroll-mt-24">
-        <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-black">
-              <span className="text-gradient">Titulos</span> do time
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Conquistas oficiais da Capixaba E-Sports.</p>
+          <div className="moon-hero-baseline">
+            <div className="moon-container">
+              <span>Uma equipe. Uma identidade.</span>
+              <span>
+                Moonastery E-Sports <span aria-hidden="true">✦</span>
+              </span>
+            </div>
           </div>
-        </div>
-        <TitlesGrid />
-      </section>
-
-      {/* Jogadores */}
-      <section id="jogadores" className="relative z-10 px-4 sm:px-8 pb-12 sm:pb-16 max-w-6xl mx-auto scroll-mt-24">
-        <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-black">
-              <span className="text-gradient">Jogadores</span> do time
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Membros aprovados da Capixaba E-Sports.</p>
+        </section>
+        {home.isPending ? (
+          <div className="moon-container">
+            <PublicLoading />
           </div>
-        </div>
-        <PlayersGrid />
-      </section>
+        ) : home.isError ? (
+          <div className="moon-container">
+            <PublicError
+              pending={home.isFetching}
+              onRetry={() => {
+                void home.refetch();
+              }}
+            />
+          </div>
+        ) : home.data ? (
+          <HomeSections data={home.data} />
+        ) : null}
+      </main>
+    </PublicShell>
+  );
+}
 
-      {/* Inscrição */}
-      <section id="inscricao" className="relative z-10 px-4 sm:px-8 pb-16 sm:pb-20 max-w-6xl mx-auto scroll-mt-24">
-        <div className="glass rounded-3xl p-6 sm:p-10">
-          <h2 className="text-2xl sm:text-3xl font-black mb-2">
-            Como fazer sua <span className="text-gradient">inscrição</span>
+function SectionHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="moon-section-heading">
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
+  );
+}
+
+function HomeSections({ data }: { data: PublicHome }) {
+  const { modalidade } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const games = data.games
+    .filter((game) => game.active)
+    .sort((a, b) => a.display_order - b.display_order);
+  const gameFilter = games.some((game) => game.slug === modalidade) ? modalidade : "all";
+  const setGameFilter = (slug: string) => {
+    void navigate({
+      search: { modalidade: slug === "all" ? undefined : slug },
+      hash: "jogos",
+      replace: true,
+    });
+  };
+  const selectedGames =
+    gameFilter === "all" ? games : games.filter((game) => game.slug === gameFilter);
+  const partners = data.partners
+    .filter((partner) => partner.active)
+    .sort((a, b) => a.display_order - b.display_order);
+  const socials = data.socials
+    .filter((social) => social.active)
+    .sort((a, b) => a.display_order - b.display_order);
+  const news = data.news.filter((item) => item.status === "published");
+  return (
+    <>
+      <section id="equipe" className="moon-section moon-container">
+        <SectionHeading
+          title="Nossa equipe"
+          description="Conheça os jogadores que levam a identidade Moonastery para dentro de jogo."
+        />
+        {data.players.length ? (
+          <>
+            <div className="moon-roster-grid">
+              {data.players.map((player) => (
+                <PublicPlayerDetails key={player.id} player={player} />
+              ))}
+            </div>
+            <p className="moon-section-note">
+              Classificação pelo overall da última avaliação aprovada. Jogadores sem avaliação
+              aparecem sem nota.
+            </p>
+          </>
+        ) : (
+          <PublicEmptyState title="A equipe está ganhando forma">
+            Os perfis dos jogadores serão apresentados aqui assim que forem publicados.
+          </PublicEmptyState>
+        )}
+      </section>
+      <section id="jogos" className="moon-section moon-games-section">
+        <div className="moon-container">
+          <SectionHeading
+            title="Onde jogamos"
+            description="Diferentes arenas. A mesma vontade de evoluir juntos."
+          />
+          {games.length ? (
+            <>
+              <div className="moon-filters" role="group" aria-label="Filtrar por modalidade">
+                <button
+                  type="button"
+                  aria-pressed={gameFilter === "all"}
+                  onClick={() => setGameFilter("all")}
+                >
+                  Todas as modalidades
+                </button>
+                {games.map((game) => (
+                  <button
+                    key={game.id}
+                    type="button"
+                    aria-pressed={gameFilter === game.slug}
+                    onClick={() => setGameFilter(game.slug)}
+                  >
+                    {game.name}
+                  </button>
+                ))}
+              </div>
+              <ContentCarousel key={gameFilter} label="Modalidades">
+                {selectedGames.map((game) => (
+                  <div className="moon-carousel-slide" key={game.id}>
+                    <GameCard
+                      game={game}
+                      playerCount={
+                        data.players.filter((player) => player.game_id === game.id).length
+                      }
+                    />
+                  </div>
+                ))}
+              </ContentCarousel>
+            </>
+          ) : (
+            <PublicEmptyState title="Novas arenas, em breve">
+              As modalidades da organização serão divulgadas nesta seção.
+            </PublicEmptyState>
+          )}
+        </div>
+      </section>
+      <section id="noticias" className="moon-section moon-container">
+        <SectionHeading
+          title="Dentro da nossa órbita"
+          description="Notícias, conquistas e os próximos capítulos da Moonastery."
+        />
+        {news.length ? (
+          <ContentCarousel label="Notícias">
+            {news.map((item) => (
+              <div className="moon-carousel-slide" key={item.id}>
+                <NewsCard news={item} />
+              </div>
+            ))}
+          </ContentCarousel>
+        ) : (
+          <PublicEmptyState title="O próximo capítulo vem aí">
+            As notícias e conquistas da Moonastery serão publicadas aqui.
+          </PublicEmptyState>
+        )}
+      </section>
+      <section id="parceiros" className="moon-section moon-partners-section">
+        <div className="moon-container">
+          <SectionHeading
+            title="Ao nosso lado"
+            description="Marcas e parceiros que fazem parte da nossa trajetória."
+          />
+          {partners.length ? (
+            <div className="moon-partners-grid">
+              {partners.map((partner) => {
+                const content = (
+                  <>
+                    <PublicImage
+                      key={partner.logo_url}
+                      src={partner.logo_url}
+                      alt={partner.name}
+                      width={220}
+                      height={100}
+                      className="moon-partner-logo"
+                      fallback={<span>{partner.name}</span>}
+                    />
+                    <span className="moon-partner-name">{partner.name}</span>
+                    {partner.description ? <p>{partner.description}</p> : null}
+                  </>
+                );
+                return partner.url ? (
+                  <a
+                    className="moon-partner"
+                    key={partner.id}
+                    href={partner.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${partner.name}, abre em nova aba`}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <div className="moon-partner" key={partner.id}>
+                    {content}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <PublicEmptyState title="Espaço para construir juntos">
+              Os parceiros oficiais da Moonastery serão apresentados aqui.
+            </PublicEmptyState>
+          )}
+        </div>
+      </section>
+      <section id="redes" className="moon-section moon-container moon-social-section">
+        <div>
+          <h2>
+            Acompanhe
+            <br />a Moonastery.
           </h2>
-          <p className="text-muted-foreground text-sm mb-6 sm:mb-8">
-            O caminho oficial para novos candidatos é <strong>sempre pelo formulário completo</strong>.
+          <p>
+            Faça parte da nossa órbita. Siga os canais oficiais e acompanhe o que acontece dentro e
+            fora de jogo.
           </p>
-
-          <ol className="space-y-3 sm:space-y-4">
-            <Step icon={<UserPlus className="h-5 w-5" />} n={1} title="Crie sua conta">
-              Clique em <Link to="/auth" className="text-primary hover:underline">Entrar</Link> e cadastre-se com seu e-mail.
-            </Step>
-            <Step icon={<ClipboardList className="h-5 w-5" />} n={2} title="Preencha o formulário completo">
-              Conte sobre você: nick, rank, plataforma e objetivos. Informe também <strong>datas e horários disponíveis para reunião</strong> — obrigatório.
-            </Step>
-            <Step icon={<CalendarCheck className="h-5 w-5" />} n={3} title="Aguarde a reunião ser marcada">
-              A administração vai analisar e marcar reunião no Discord. A data aparecerá na sua candidatura. <strong>Fique atento!</strong>
-            </Step>
-            <Step icon={<MessageCircle className="h-5 w-5" />} n={4} title="Participe da reunião no Discord">
-              No horário combinado, entre no Discord para conversarmos.
-              <a href={DISCORD_URL} target="_blank" rel="noreferrer" className="mt-2 inline-block rounded-md glass-strong px-4 py-2 text-primary hover:shadow-[var(--shadow-glow)] transition text-sm">
-                🎧 Entrar no Discord da Capixaba
+        </div>
+        {socials.length ? (
+          <div className="moon-social-links">
+            {socials.map((social) => (
+              <a href={social.url} target="_blank" rel="noopener noreferrer" key={social.id}>
+                <SocialIcon platform={social.icon || social.platform} />
+                <span>{social.platform}</span>
+                <ArrowUpRight aria-hidden="true" size={20} />
+                <span className="sr-only"> (abre em nova aba)</span>
               </a>
-            </Step>
-            <Step icon={<CheckCircle2 className="h-5 w-5" />} n={5} title="Aprovação e acesso ao time">
-              Se aprovado, você acessa todas as ferramentas: relatórios, treinos, ranking, evolução e mais.
-            </Step>
-          </ol>
-
-          <div className="mt-6 sm:mt-8 rounded-xl border border-yellow-500/40 bg-yellow-500/5 p-4 text-xs sm:text-sm">
-            ⚠️ <strong>Atenção:</strong> "Solicitar sem formulário" é exclusivo para pessoas convidadas pela administração. Sem convite, use o formulário completo.
+            ))}
           </div>
-
-          <div className="mt-5 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
-            <Link to="/auth" className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 sm:px-6 sm:py-3 font-bold text-sm sm:text-base hover:shadow-[var(--shadow-glow)] hover:scale-[1.03] transition-all">
-              <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5" /> Começar minha inscrição
-            </Link>
-            <Link to="/jogos" className="inline-flex items-center gap-2 rounded-full glass px-5 py-2.5 sm:px-6 sm:py-3 font-medium text-sm sm:text-base hover:shadow-[var(--shadow-glow)] transition-all">
-              <Swords className="h-4 w-4 sm:h-5 sm:w-5" /> Ver jogos primeiro
-            </Link>
-          </div>
-        </div>
+        ) : (
+          <p className="moon-social-empty">Os canais oficiais serão divulgados em breve.</p>
+        )}
       </section>
-
-      <footer className="py-6 text-center text-xs text-muted-foreground relative z-10 px-4">
-        © Capixaba E-Sports · Espírito Santo · <a href={DISCORD_URL} target="_blank" rel="noreferrer" className="hover:text-primary">Discord</a>
-      </footer>
-    </div>
+    </>
   );
 }
 
-function NavBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function GameCard({ game, playerCount }: { game: Game; playerCount: number }) {
+  const Icon = game.slug.includes("rocket")
+    ? Rocket
+    : game.slug.includes("counter")
+      ? Crosshair
+      : game.slug.includes("valorant")
+        ? Shield
+        : Gamepad2;
   return (
-    <button onClick={onClick} className={`rounded-md px-3 py-1.5 transition ${active ? "text-primary bg-white/5" : "text-muted-foreground hover:text-foreground hover:bg-white/5"}`}>
-      {children}
-    </button>
-  );
-}
-
-function MobileLink({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className="text-left rounded-lg glass px-4 py-3 font-medium">
-      {children}
-    </button>
-  );
-}
-
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`text-xs px-3 py-1.5 rounded-full shrink-0 transition ${active ? "bg-primary text-primary-foreground font-bold" : "glass text-muted-foreground"}`}
-    >{children}</button>
-  );
-}
-
-function FeatureCard({ emoji, title, children }: { emoji: string; title: string; children: React.ReactNode }) {
-  return (
-    <div className="glass rounded-2xl p-5 sm:p-6">
-      <div className="text-2xl sm:text-3xl mb-2">{emoji}</div>
-      <div className="font-bold mb-1">{title}</div>
-      <p className="text-sm text-muted-foreground">{children}</p>
-    </div>
-  );
-}
-
-function Step({ n, icon, title, children }: { n: number; icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <li className="flex gap-3 sm:gap-4 rounded-2xl glass p-4 sm:p-5">
-      <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-primary/20 text-primary font-black">
-        {n}
+    <article className={`moon-game-card moon-game-${game.slug}`}>
+      <PublicImage
+        key={game.image_url}
+        src={game.image_url}
+        alt={game.name}
+        width={600}
+        height={440}
+        className="moon-game-art"
+        fallback={<Icon aria-hidden="true" size={94} strokeWidth={1} />}
+      />
+      <div className="moon-game-info">
+        <h3>{game.name}</h3>
+        <p>{game.description || "Uma modalidade na órbita da Moonastery."}</p>
+        {playerCount > 0 ? (
+          <span>
+            {playerCount} {playerCount === 1 ? "jogador na equipe" : "jogadores na equipe"}
+          </span>
+        ) : null}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 font-bold mb-1 text-sm sm:text-base">{icon} {title}</div>
-        <div className="text-xs sm:text-sm text-muted-foreground">{children}</div>
-      </div>
-    </li>
+    </article>
   );
 }
 
-type PublicPlayer = {
-  id: string;
-  nick: string | null;
-  avatar_url: string | null;
-  rank_2v2: string | null;
-  mmr_2v2: number | null;
-  rank_3v3: string | null;
-  mmr_3v3: number | null;
-  platform: string | null;
-};
-
-type PublicTitle = {
-  id: string;
-  tournament_name: string;
-  championship_logo_url: string | null;
-  trophy_image_url: string | null;
-  achieved_at: string | null;
-  notes: string | null;
-};
-
-function TitlesGrid() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["public-titles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("team_titles")
-        .select("id,tournament_name,championship_logo_url,trophy_image_url,achieved_at,notes")
-        .order("achieved_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false });
-      if (error) {
-        if (isMissingTeamTitlesTable(error)) return [] as PublicTitle[];
-        throw error;
-      }
-      return data as PublicTitle[];
-    },
-  });
-
-  if (isLoading) return <p className="text-muted-foreground text-sm">Carregando titulos...</p>;
-  if (!data || data.length === 0) {
-    return (
-      <div className="glass rounded-2xl p-6 sm:p-8 text-center">
-        <Trophy className="h-8 w-8 text-primary/60 mx-auto mb-3" />
-        <p className="text-muted-foreground text-sm">Nenhum titulo cadastrado ainda.</p>
-      </div>
-    );
-  }
-
+function NewsCard({ news }: { news: PublicNews }) {
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-      {data.map((title) => (
-        <div key={title.id} className="glass rounded-2xl p-4 sm:p-5 hover:shadow-[var(--shadow-glow)] transition">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] uppercase tracking-widest text-primary mb-1">
-                {title.achieved_at ? formatTitleDate(title.achieved_at) : "Conquista"}
-              </div>
-              <h3 className="font-black text-lg text-gradient truncate">{title.tournament_name}</h3>
-              {title.notes && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{title.notes}</p>}
-            </div>
-            {title.championship_logo_url
-              ? <img src={title.championship_logo_url} alt={title.tournament_name} className="h-16 w-16 object-contain shrink-0" />
-              : <Trophy className="h-12 w-12 text-primary/50 shrink-0" />}
+    <article className="moon-news-card">
+      <a href={`/noticias/${encodeURIComponent(news.slug)}`}>
+        <PublicImage
+          key={news.cover_url}
+          src={news.cover_url}
+          alt={news.title}
+          width={600}
+          height={360}
+          className="moon-news-cover"
+          fallback={<Newspaper aria-hidden="true" size={64} strokeWidth={1} />}
+        />
+        <div className="moon-news-copy">
+          <div className="moon-news-meta">
+            <span>{news.category || "Notícia"}</span>
+            <time dateTime={news.published_at || undefined}>
+              {formatPublicDate(news.published_at)}
+            </time>
           </div>
-          {title.trophy_image_url && (
-            <div className="mt-4 rounded-xl glass p-3 grid place-items-center">
-              <img src={title.trophy_image_url} alt="Trofeu" className="h-28 w-full object-contain" />
-            </div>
-          )}
+          <h3>{news.title}</h3>
+          <p>{news.summary}</p>
+          <span className="moon-news-read">
+            Ler notícia <ArrowUpRight aria-hidden="true" size={18} />
+          </span>
         </div>
-      ))}
-    </div>
-  );
-}
-
-function formatTitleDate(value: string) {
-  const [year, month, day] = value.slice(0, 10).split("-");
-  if (!year || !month || !day) return value;
-  return `${day}/${month}/${year}`;
-}
-
-function isMissingTeamTitlesTable(error: unknown) {
-  const err = error as { code?: string; message?: string; details?: string };
-  const text = `${err.code ?? ""} ${err.message ?? ""} ${err.details ?? ""}`.toLowerCase();
-  return (
-    text.includes("team_titles") &&
-    (
-      text.includes("schema cache") ||
-      text.includes("could not find") ||
-      text.includes("does not exist") ||
-      text.includes("42p01") ||
-      text.includes("pgrst205")
-    )
-  );
-}
-
-function PlayersGrid() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["public-roster"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id,nick,avatar_url,rank_2v2,mmr_2v2,rank_3v3,mmr_3v3,platform")
-        .eq("status", "aprovado")
-        .order("mmr_3v3", { ascending: false, nullsFirst: false });
-      if (error) throw error;
-      return data as PublicPlayer[];
-    },
-  });
-
-  if (isLoading) return <p className="text-muted-foreground text-sm">Carregando jogadores...</p>;
-  if (!data || data.length === 0) {
-    return (
-      <div className="glass rounded-2xl p-6 sm:p-8 text-center">
-        <p className="text-muted-foreground text-sm">Nenhum jogador aprovado ainda. Seja o primeiro a se inscrever!</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-      {data.map((p) => (
-        <div key={p.id} className="glass rounded-2xl p-4 sm:p-5 text-center hover:shadow-[var(--shadow-glow)] transition">
-          <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-primary/40 bg-primary/10 grid place-items-center mb-3">
-            {p.avatar_url
-              ? <img src={p.avatar_url} alt={p.nick ?? ""} className="w-full h-full object-cover" />
-              : <UserIcon className="h-8 w-8 text-primary/60" />}
-          </div>
-          <div className="font-black text-sm sm:text-base truncate text-gradient">{p.nick ?? "Jogador"}</div>
-          {(p.rank_3v3 || p.rank_2v2) && (
-            <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
-              {p.rank_3v3 ?? p.rank_2v2}
-            </div>
-          )}
-          {(p.mmr_3v3 ?? p.mmr_2v2) != null && (
-            <div className="mt-2 text-xs sm:text-sm font-bold text-primary">
-              {p.mmr_3v3 ?? p.mmr_2v2} <span className="text-[9px] text-muted-foreground">MMR</span>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+      </a>
+    </article>
   );
 }

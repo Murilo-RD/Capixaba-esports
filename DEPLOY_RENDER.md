@@ -1,76 +1,31 @@
-# Deploy no Render
+﻿# Implantação Moonastery no Render
 
-Este projeto esta preparado para rodar no Render como Web Service Node.
+A stack existente foi preservada. Não reescreva histórico publicado no Git/Lovable. Não envie .env, backups ou segredos para Git.
 
-## 1. Antes de subir
+## Preparação
 
-1. Aplique a migration mais recente no Supabase:
-   - Abra o Supabase Dashboard do projeto.
-   - Va em SQL Editor.
-   - Rode o arquivo `supabase/migrations/20260713172000_repair_database_policies.sql`.
-2. Confirme se `.env` nao vai para o Git. Ele esta listado no `.gitignore`; use `.env.example` como modelo.
-3. Rode um build local quando possivel:
+1. Leia docs/DATABASE_RESET.md: faça inventário/backup do banco real e revise as novas migrations. A aplicação nova não importa os dados operacionais legados. A limpeza é um procedimento separado, somente após confirmação explícita.
+2. Aplique as migrations Moonastery, valide RLS e compare o inventário real com o local. O código local não aplica migrations automaticamente em produção.
+3. Cadastre sua conta pelo Supabase Auth e provisione o primeiro owner com o procedimento administrativo documentado pelo backend. Não existe promoção por lista de emails.
+4. Configure em Supabase Auth a URL real do site e redirects para /team, /team?recovery=1 e o fluxo de convite. Habilite email e SMTP para confirmação, recuperação e convites. Auth antigo não é migrado automaticamente.
+5. Execute npm ci, npm run typecheck, npm run lint, npm test e npm run build:render. O lockfile npm é o registro de instalação para Render.
 
-```bash
-NITRO_PRESET=node-server npm run build:render
-```
+## Serviço
 
-## 2. Subir para o Git
+O render.yaml descreve um Web Service Node, healthcheck /, build npm ci --include=dev && npm run build:render, start npm run start. Nitro usa PORT fornecida pela hospedagem. Node 22.16 é o mínimo configurado; a validação local também usa Node 24.
 
-Como este workspace estava sem um repositorio Git valido, inicialize e envie para um repositorio remoto:
+## Variáveis
 
-```bash
-git init
-git add .
-git commit -m "Prepare app for Render deployment"
-git branch -M main
-git remote add origin <URL_DO_SEU_REPOSITORIO>
-git push -u origin main
-```
+- SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY (ou SUPABASE_SECRET_KEY): preserve credenciais existentes. A chave administrativa é exclusivamente servidor.
+- VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY: públicas, injetadas no build. Nunca use chave administrativa nestes campos.
+- PUBLIC_APP_URL e VITE_PUBLIC_APP_URL: configure a mesma URL real quando o domínio for definido. A primeira é usada no servidor para convites e a segunda para links/callbacks/metadados do cliente. Em desenvolvimento, callbacks usam a origem atual se não configuradas.
+- NITRO_PRESET=node-server: necessário para Render.
+- BALLCHASING_API_TOKEN: segredo servidor para uploads privados e obtenção das métricas reais. Confira limites e plano da conta do provedor.
 
-Nao faca force push, rebase ou amend em commits ja enviados, porque o projeto tambem tem historico do Lovable.
+As variáveis antigas de JWT próprio, bootstrap por email, Tracker e gateway email não são usadas pela nova aplicação. Elas não foram apagadas do .env existente. Remova-as da hospedagem somente após conferir que nenhum outro serviço depende delas.
 
-## 3. Criar o servico no Render
+## Operação
 
-Opcao recomendada: crie um Blueprint no Render usando o arquivo `render.yaml`.
+Configure modalidades, perfis de jogadores, identificações Steam/Epic, arquétipos e baselines SSL reais no painel owner. Parceiros, redes e notícias ficam vazios até cadastro real. Sem token Ballchasing ou baseline válida, a interface informa falha/insuficiência; não gera notas demonstrativas. Coaches enviam e processam replays na fila, respeitando espera/retries do provedor. O build não cria um scheduler externo; para processamento contínuo sem interação, execute um worker autorizado seguindo docs/GAMEPLAYSCOUTER.md.
 
-Opcao manual:
-
-- Service type: Web Service
-- Runtime: Node
-- Build command: `npm install --include=dev && npm run build:render`
-- Start command: `npm run start`
-- Health check path: `/`
-- Node version: `22.16.0`
-
-O Render injeta a variavel `PORT` automaticamente. O preset `node-server` do Nitro usa essa porta em producao.
-
-## 4. Variaveis de ambiente no Render
-
-Configure estas variaveis no painel do Render:
-
-```env
-NITRO_PRESET=node-server
-SUPABASE_URL=
-SUPABASE_PUBLISHABLE_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-SUPABASE_SECRET_KEY=
-SUPABASE_JWT_SECRET=
-SUPABASE_PROJECT_ID=
-VITE_SUPABASE_URL=
-VITE_SUPABASE_PUBLISHABLE_KEY=
-VITE_SUPABASE_PROJECT_ID=
-PUBLIC_APP_URL=
-DISCORD_URL=
-TRN_API_KEY=
-EMAIL_FROM=
-EMAIL_GATEWAY_URL=
-EMAIL_GATEWAY_BEARER=
-EMAIL_CONNECTION_API_KEY=
-```
-
-Depois do primeiro deploy, coloque em `PUBLIC_APP_URL` a URL real do Render, por exemplo `https://capixaba-es.onrender.com`, e rode um novo deploy.
-
-Se sua chave secreta nova comecar com `sb_secret_`, coloque o mesmo valor em `SUPABASE_SECRET_KEY` e `SUPABASE_SERVICE_ROLE_KEY`.
-
-Nunca crie `VITE_SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_SECRET_KEY` ou `VITE_SUPABASE_JWT_SECRET`. Chaves com prefixo `VITE_` ficam expostas no navegador.
+Antes de liberar o domínio, teste com contas de cada papel: cadastro pending, owner aprova/atribui, editor submete e owner publica, coach processa/aprova, player consulta somente seus relatórios. Execute os testes SQL em homologação e verifique Storage/redirects/SMTP. Testes locais de PostgreSQL não substituem a conferência do Supabase hospedado.

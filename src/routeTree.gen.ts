@@ -9,31 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as JogosRouteImport } from './routes/jogos'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as TeamRouteImport } from './routes/team'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedTreinosRouteImport } from './routes/_authenticated/treinos'
-import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
-import { Route as AuthenticatedRankingRouteImport } from './routes/_authenticated/ranking'
-import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
-import { Route as AuthenticatedMeusRelatoriosRouteImport } from './routes/_authenticated/meus-relatorios'
-import { Route as AuthenticatedCandidaturaRouteImport } from './routes/_authenticated/candidatura'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as ApiPublicHooksWeeklyReminderRouteImport } from './routes/api/public/hooks/weekly-reminder'
+import { Route as NoticiasSlugRouteImport } from './routes/noticias.$slug'
+import { Route as ApiScouterRouteImport } from './routes/api/scouter'
+import { Route as ApiMoonasteryRouteImport } from './routes/api/moonastery'
 
-const JogosRoute = JogosRouteImport.update({
-  id: '/jogos',
-  path: '/jogos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -41,163 +25,74 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTreinosRoute = AuthenticatedTreinosRouteImport.update({
-  id: '/treinos',
-  path: '/treinos',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const NoticiasSlugRoute = NoticiasSlugRouteImport.update({
+  id: '/noticias/$slug',
+  path: '/noticias/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRelatorioRoute = AuthenticatedRelatorioRouteImport.update({
-  id: '/relatorio',
-  path: '/relatorio',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const ApiScouterRoute = ApiScouterRouteImport.update({
+  id: '/api/scouter',
+  path: '/api/scouter',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRankingRoute = AuthenticatedRankingRouteImport.update({
-  id: '/ranking',
-  path: '/ranking',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const ApiMoonasteryRoute = ApiMoonasteryRouteImport.update({
+  id: '/api/moonastery',
+  path: '/api/moonastery',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMeusRelatoriosRoute =
-  AuthenticatedMeusRelatoriosRouteImport.update({
-    id: '/meus-relatorios',
-    path: '/meus-relatorios',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCandidaturaRoute =
-  AuthenticatedCandidaturaRouteImport.update({
-    id: '/candidatura',
-    path: '/candidatura',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const ApiPublicHooksWeeklyReminderRoute =
-  ApiPublicHooksWeeklyReminderRouteImport.update({
-    id: '/api/public/hooks/weekly-reminder',
-    path: '/api/public/hooks/weekly-reminder',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/jogos': typeof JogosRoute
-  '/admin': typeof AuthenticatedAdminRoute
-  '/candidatura': typeof AuthenticatedCandidaturaRoute
-  '/meus-relatorios': typeof AuthenticatedMeusRelatoriosRoute
-  '/perfil': typeof AuthenticatedPerfilRoute
-  '/ranking': typeof AuthenticatedRankingRoute
-  '/relatorio': typeof AuthenticatedRelatorioRoute
-  '/treinos': typeof AuthenticatedTreinosRoute
-  '/api/public/hooks/weekly-reminder': typeof ApiPublicHooksWeeklyReminderRoute
+  '/team': typeof TeamRoute
+  '/api/moonastery': typeof ApiMoonasteryRoute
+  '/api/scouter': typeof ApiScouterRoute
+  '/noticias/$slug': typeof NoticiasSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/jogos': typeof JogosRoute
-  '/admin': typeof AuthenticatedAdminRoute
-  '/candidatura': typeof AuthenticatedCandidaturaRoute
-  '/meus-relatorios': typeof AuthenticatedMeusRelatoriosRoute
-  '/perfil': typeof AuthenticatedPerfilRoute
-  '/ranking': typeof AuthenticatedRankingRoute
-  '/relatorio': typeof AuthenticatedRelatorioRoute
-  '/treinos': typeof AuthenticatedTreinosRoute
-  '/api/public/hooks/weekly-reminder': typeof ApiPublicHooksWeeklyReminderRoute
+  '/team': typeof TeamRoute
+  '/api/moonastery': typeof ApiMoonasteryRoute
+  '/api/scouter': typeof ApiScouterRoute
+  '/noticias/$slug': typeof NoticiasSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
-  '/jogos': typeof JogosRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/candidatura': typeof AuthenticatedCandidaturaRoute
-  '/_authenticated/meus-relatorios': typeof AuthenticatedMeusRelatoriosRoute
-  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
-  '/_authenticated/ranking': typeof AuthenticatedRankingRoute
-  '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
-  '/_authenticated/treinos': typeof AuthenticatedTreinosRoute
-  '/api/public/hooks/weekly-reminder': typeof ApiPublicHooksWeeklyReminderRoute
+  '/team': typeof TeamRoute
+  '/api/moonastery': typeof ApiMoonasteryRoute
+  '/api/scouter': typeof ApiScouterRoute
+  '/noticias/$slug': typeof NoticiasSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/auth'
-    | '/jogos'
-    | '/admin'
-    | '/candidatura'
-    | '/meus-relatorios'
-    | '/perfil'
-    | '/ranking'
-    | '/relatorio'
-    | '/treinos'
-    | '/api/public/hooks/weekly-reminder'
+    '/' | '/team' | '/api/moonastery' | '/api/scouter' | '/noticias/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/auth'
-    | '/jogos'
-    | '/admin'
-    | '/candidatura'
-    | '/meus-relatorios'
-    | '/perfil'
-    | '/ranking'
-    | '/relatorio'
-    | '/treinos'
-    | '/api/public/hooks/weekly-reminder'
+  to: '/' | '/team' | '/api/moonastery' | '/api/scouter' | '/noticias/$slug'
   id:
     | '__root__'
     | '/'
-    | '/_authenticated'
-    | '/auth'
-    | '/jogos'
-    | '/_authenticated/admin'
-    | '/_authenticated/candidatura'
-    | '/_authenticated/meus-relatorios'
-    | '/_authenticated/perfil'
-    | '/_authenticated/ranking'
-    | '/_authenticated/relatorio'
-    | '/_authenticated/treinos'
-    | '/api/public/hooks/weekly-reminder'
+    | '/team'
+    | '/api/moonastery'
+    | '/api/scouter'
+    | '/noticias/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
-  JogosRoute: typeof JogosRoute
-  ApiPublicHooksWeeklyReminderRoute: typeof ApiPublicHooksWeeklyReminderRoute
+  TeamRoute: typeof TeamRoute
+  ApiMoonasteryRoute: typeof ApiMoonasteryRoute
+  ApiScouterRoute: typeof ApiScouterRoute
+  NoticiasSlugRoute: typeof NoticiasSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/jogos': {
-      id: '/jogos'
-      path: '/jogos'
-      fullPath: '/jogos'
-      preLoaderRoute: typeof JogosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -207,94 +102,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/treinos': {
-      id: '/_authenticated/treinos'
-      path: '/treinos'
-      fullPath: '/treinos'
-      preLoaderRoute: typeof AuthenticatedTreinosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/noticias/$slug': {
+      id: '/noticias/$slug'
+      path: '/noticias/$slug'
+      fullPath: '/noticias/$slug'
+      preLoaderRoute: typeof NoticiasSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/relatorio': {
-      id: '/_authenticated/relatorio'
-      path: '/relatorio'
-      fullPath: '/relatorio'
-      preLoaderRoute: typeof AuthenticatedRelatorioRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/api/scouter': {
+      id: '/api/scouter'
+      path: '/api/scouter'
+      fullPath: '/api/scouter'
+      preLoaderRoute: typeof ApiScouterRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/ranking': {
-      id: '/_authenticated/ranking'
-      path: '/ranking'
-      fullPath: '/ranking'
-      preLoaderRoute: typeof AuthenticatedRankingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/perfil': {
-      id: '/_authenticated/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/meus-relatorios': {
-      id: '/_authenticated/meus-relatorios'
-      path: '/meus-relatorios'
-      fullPath: '/meus-relatorios'
-      preLoaderRoute: typeof AuthenticatedMeusRelatoriosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/candidatura': {
-      id: '/_authenticated/candidatura'
-      path: '/candidatura'
-      fullPath: '/candidatura'
-      preLoaderRoute: typeof AuthenticatedCandidaturaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/api/public/hooks/weekly-reminder': {
-      id: '/api/public/hooks/weekly-reminder'
-      path: '/api/public/hooks/weekly-reminder'
-      fullPath: '/api/public/hooks/weekly-reminder'
-      preLoaderRoute: typeof ApiPublicHooksWeeklyReminderRouteImport
+    '/api/moonastery': {
+      id: '/api/moonastery'
+      path: '/api/moonastery'
+      fullPath: '/api/moonastery'
+      preLoaderRoute: typeof ApiMoonasteryRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedCandidaturaRoute: typeof AuthenticatedCandidaturaRoute
-  AuthenticatedMeusRelatoriosRoute: typeof AuthenticatedMeusRelatoriosRoute
-  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
-  AuthenticatedRankingRoute: typeof AuthenticatedRankingRoute
-  AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
-  AuthenticatedTreinosRoute: typeof AuthenticatedTreinosRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedCandidaturaRoute: AuthenticatedCandidaturaRoute,
-  AuthenticatedMeusRelatoriosRoute: AuthenticatedMeusRelatoriosRoute,
-  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
-  AuthenticatedRankingRoute: AuthenticatedRankingRoute,
-  AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
-  AuthenticatedTreinosRoute: AuthenticatedTreinosRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
-  JogosRoute: JogosRoute,
-  ApiPublicHooksWeeklyReminderRoute: ApiPublicHooksWeeklyReminderRoute,
+  TeamRoute: TeamRoute,
+  ApiMoonasteryRoute: ApiMoonasteryRoute,
+  ApiScouterRoute: ApiScouterRoute,
+  NoticiasSlugRoute: NoticiasSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

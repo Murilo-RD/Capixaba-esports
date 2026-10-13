@@ -1,21 +1,9 @@
-# Routes
+﻿# Rotas Moonastery
 
-TanStack Start uses **file-based routing**. Every `.tsx` file in this directory
-is a route. Do **not** create `src/pages/`, `src/routes/_app/index.tsx`, or
-`app/layout.tsx` — those are Next.js / Remix conventions. The only root layout
-is `src/routes/__root.tsx`.
+- /: institucional público com equipe, cartas, modalidades, notícias, parceiros e redes.
+- /noticias/$slug: notícia publicada, com conteúdo completo.
+- /team: Supabase Auth, aprovação pending e navegação interna por papel; search module permite links para módulos. Recuperação em ?recovery=1.
+- /api/moonastery: consultas públicas restritas e ações internas validadas no servidor.
+- /api/scouter: upload multipart de replay exclusivo coach/owner aprovado.
 
-## Conventions
-
-| File | URL |
-| --- | --- |
-| `index.tsx` | `/` |
-| `about.tsx` | `/about` |
-| `users/index.tsx` | `/users` |
-| `users/$id.tsx` | `/users/:id` (dynamic — bare `$`, no curly braces) |
-| `posts/{-$category}.tsx` | `/posts/:category?` (optional segment) |
-| `files/$.tsx` | `/files/*` (splat — read via `_splat` param, never `*`) |
-| `_layout.tsx` | layout route (renders children via `<Outlet />`) |
-| `__root.tsx` | app shell — wraps every page; preserve `<Outlet />` |
-
-`routeTree.gen.ts` is auto-generated. Don't edit it by hand.
+As rotas antigas de candidaturas, treinos, avaliações manuais e confrontos foram removidas. routeTree.gen.ts é gerado pelo TanStack Router durante dev/build.

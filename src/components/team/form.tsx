@@ -113,7 +113,12 @@ export function EditorForm({
   function update(name: string, value: FormValue) {
     setValues((current) => ({ ...current, [name]: value }));
   }
-  async function upload(name: string, file: File, purpose: "avatar" | "content") {
+  async function upload(
+    name: string,
+    file: File,
+    purpose: "avatar" | "content",
+    onUploaded?: (url: string) => void,
+  ) {
     setError(null);
     if (
       file.size > 5 * 1024 * 1024 ||
@@ -137,7 +142,8 @@ export function EditorForm({
         bytes: file.size,
         data,
       });
-      update(name, uploaded.url);
+      if (onUploaded) onUploaded(uploaded.url);
+      else update(name, uploaded.url);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Falha no envio da imagem.");
     } finally {
@@ -178,7 +184,11 @@ export function EditorForm({
         const value = values[field.name];
         return (
           <div className="team-field" key={field.name}>
-            <label htmlFor={id}>{field.label}</label>
+            {field.type === "media" ? (
+              <span id={`${id}-label`}>{field.label}</span>
+            ) : (
+              <label htmlFor={id}>{field.label}</label>
+            )}
             {field.type === "textarea" || field.type === "json" ? (
               <textarea
                 id={id}
@@ -192,7 +202,28 @@ export function EditorForm({
                 onChange={(event) => update(field.name, event.target.value)}
               />
             ) : field.type === "media" ? (
-              <MediaFields id={id} value={value} onChange={(value) => update(field.name, value)} />
+              <MediaFields
+                labelledBy={`${id}-label`}
+                value={value}
+                uploading={uploading === field.name}
+                onChange={(next) => update(field.name, next)}
+                onUploadImage={(file, index) => {
+                  void upload(field.name, file, "content", (url) => {
+                    setValues((current) => {
+                      const items = Array.isArray(current[field.name])
+                        ? [...(current[field.name] as { type: string; url: string }[])]
+                        : [];
+                      if (index === undefined) {
+                        if (items.length >= 20) return current;
+                        items.push({ type: "image", url });
+                      } else if (items[index]?.type === "image") {
+                        items[index] = { type: "image", url };
+                      } else return current;
+                      return { ...current, [field.name]: items };
+                    });
+                  });
+                }}
+              />
             ) : field.type === "weights" ? (
               <div className="team-weights">
                 {["VEL", "FIN", "CRI", "DEF", "POS", "BST", "IMP"].map((attribute) => (
@@ -317,60 +348,120 @@ export function EditorForm({
 }
 
 function MediaFields({
-  id,
+  labelledBy,
   value,
   onChange,
+  onUploadImage,
+  uploading,
 }: {
-  id: string;
+  labelledBy: string;
   value: FormValue;
   onChange: (value: FormValue) => void;
+  onUploadImage: (file: File, index?: number) => void;
+  uploading: boolean;
 }) {
-  const items = Array.isArray(value) ? (value as unknown as { type: string; url: string }[]) : [];
+  const items = Array.isArray(value)
+    ? (value as unknown as { type: "image" | "video" | "link"; url: string }[])
+    : [];
   return (
-    <div id={id}>
+    <div className="team-media-editor" role="group" aria-labelledby={labelledBy}>
       {items.map((item, index) => (
-        <div className="team-media-field" key={index}>
-          <select
-            aria-label={`Tipo de mídia ${index + 1}`}
-            value={item.type}
-            onChange={(event) =>
-              onChange(
-                items.map((row, i) => (i === index ? { ...row, type: event.target.value } : row)),
-              )
-            }
-          >
-            <option value="image">Imagem</option>
-            <option value="video">Vídeo</option>
-            <option value="link">Link</option>
-          </select>
-          <input
-            type="url"
-            aria-label={`URL da mídia ${index + 1}`}
-            value={item.url}
-            required
-            onChange={(event) =>
-              onChange(
-                items.map((row, i) => (i === index ? { ...row, url: event.target.value } : row)),
-              )
-            }
-          />
+        <div className="team-media-entry" key={index}>
+          {item.type === "image" ? (
+            <div className="team-media-image-entry">
+              <img
+                src={item.url}
+                width="128"
+                height="96"
+                loading="lazy"
+                alt={`Imagem de apoio ${index + 1}`}
+              />
+              <div>
+                <strong>Imagem {index + 1}</strong>
+                <label className="team-media-upload">
+                  Substituir arquivo
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={uploading}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) onUploadImage(file, index);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+          ) : (
+            <div className="team-media-field">
+              <select
+                aria-label={`Tipo de material ${index + 1}`}
+                value={item.type}
+                onChange={(event) =>
+                  onChange(
+                    items.map((row, i) =>
+                      i === index ? { ...row, type: event.target.value as "video" | "link" } : row,
+                    ),
+                  )
+                }
+              >
+                <option value="video">Vídeo</option>
+                <option value="link">Link</option>
+              </select>
+              <input
+                type="url"
+                aria-label={`URL do ${item.type === "video" ? "vídeo" : "link"} ${index + 1}`}
+                placeholder="https://…"
+                value={item.url}
+                required
+                onChange={(event) =>
+                  onChange(
+                    items.map((row, i) =>
+                      i === index ? { ...row, url: event.target.value } : row,
+                    ),
+                  )
+                }
+              />
+            </div>
+          )}
           <button
             type="button"
             className="team-text-button"
+            disabled={uploading}
             onClick={() => onChange(items.filter((_, i) => i !== index))}
           >
-            Remover
+            Remover {item.type === "image" ? "imagem" : "material"}
           </button>
         </div>
       ))}
-      <button
-        type="button"
-        className="team-button team-button-secondary"
-        disabled={items.length >= 20}
-        onClick={() => onChange([...items, { type: "link", url: "" }])}
-      >
-        Adicionar imagem, vídeo ou link
-      </button>
+      {uploading && <p role="status">Enviando imagem…</p>}
+      <div className="team-media-add">
+        <label className="team-media-upload">
+          Enviar imagem
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            disabled={uploading || items.length >= 20}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) onUploadImage(file);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          className="team-button team-button-secondary"
+          disabled={uploading || items.length >= 20}
+          onClick={() => onChange([...items, { type: "link", url: "" }])}
+        >
+          Adicionar vídeo ou link
+        </button>
+      </div>
+      <p className="team-muted">
+        Imagens: PNG, JPEG ou WebP de até 5 MB. Depois do envio, salve a instrução.
+      </p>
     </div>
   );
 }

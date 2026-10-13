@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { actionSchemas, requestSchema } from "../src/lib/moonastery/schemas";
 import { permittedModules, defaultModule } from "../src/components/team/permissions";
+import { isUploadedInstructionImageUrl } from "../src/lib/moonastery/media";
 import type { Membership, Role } from "../src/lib/moonastery/types";
 
 const id = "00000000-0000-4000-8000-000000000001";
@@ -105,6 +106,25 @@ test("public external links reject script schemes; uploaded media bounds enforce
       bytes: 6 * 1024 * 1024,
       data: "fixture",
     }).success,
+  );
+});
+test("instruction images use uploaded Moonastery content URLs", () => {
+  const uploaded = `https://example.supabase.co/storage/v1/object/public/moon-content/${id}/${id}.png`;
+  assert(isUploadedInstructionImageUrl(uploaded, "https://example.supabase.co/"));
+  assert(
+    !isUploadedInstructionImageUrl(
+      "https://images.example.test/instruction.png",
+      "https://example.supabase.co",
+    ),
+  );
+  assert(
+    !isUploadedInstructionImageUrl(`${uploaded}?redirect=other`, "https://example.supabase.co"),
+  );
+  assert(
+    !isUploadedInstructionImageUrl(
+      uploaded.replace("moon-content", "moon-avatars"),
+      "https://example.supabase.co",
+    ),
   );
 });
 test("archetype weights must sum to one and contain exactly seven attributes", () => {

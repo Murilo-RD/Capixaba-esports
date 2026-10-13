@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { actionSchemas, requestSchema } from "./schemas";
+import { isUploadedInstructionImageUrl } from "./media";
 import type { MoonAction } from "./schemas";
 import type { Membership, PublicHome, Player, PublicPlayer, Archetype, PlayerCard } from "./types";
 
@@ -409,9 +410,31 @@ export async function handleMoonRequest(request: Request) {
       if (rows.length !== new Set(data.target_player_ids).size)
         throw new ApiError("Destinatário inválido.");
     }
+    const existing = id ? await requireRow(db, "moon_instructions", id) : null;
+    const existingImages = new Set(
+      Array.isArray(existing?.media)
+        ? (existing.media as { type: string; url: string }[])
+            .filter((item) => item.type === "image")
+            .map((item) => item.url)
+        : [],
+    );
+    for (const item of data.media) {
+      if (
+        item.type === "image" &&
+        !existingImages.has(item.url) &&
+        !isUploadedInstructionImageUrl(
+          item.url,
+          process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+        )
+      )
+        throw new ApiError(
+          "Envie as imagens da instrução pelo campo de upload.",
+          400,
+          "IMAGE_UPLOAD_REQUIRED",
+        );
+    }
     const { id: _, ...fields } = data;
     if (id) {
-      await requireRow(db, "moon_instructions", id);
       await checked(db.from("moon_instructions").update(fields).eq("id", id));
     } else await checked(db.from("moon_instructions").insert({ ...fields, author_id: user.id }));
   } else if (body.action === "instructions.delete") {

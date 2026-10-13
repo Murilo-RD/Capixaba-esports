@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { moonRequest } from "@/lib/moonastery/client";
 import type {
@@ -23,7 +24,12 @@ const textField = (
   type: Field["type"] = "text",
   required = false,
 ): Field => ({ name, label, type, required });
-const roles = ["owner", "editor", "coach", "player"].map((value) => ({ value, label: value }));
+const roles = [
+  { value: "owner", label: "Gestão" },
+  { value: "editor", label: "Editor" },
+  { value: "coach", label: "Treinador" },
+  { value: "player", label: "Jogador" },
+];
 const attrs = ["VEL", "FIN", "CRI", "DEF", "POS", "BST", "IMP"] as const;
 const statusLabels: Record<string, string> = {
   pending: "Pendente",
@@ -50,10 +56,18 @@ function date(value: string) {
   }).format(new Date(value.includes("T") ? value : `${value}T12:00:00Z`));
 }
 
-export function TeamContent({ module, data }: { module: TeamModule; data: DashboardData }) {
+export function TeamContent({
+  module,
+  data,
+  onNavigate,
+}: {
+  module: TeamModule;
+  data: DashboardData;
+  onNavigate: () => void;
+}) {
   switch (module) {
     case "overview":
-      return <Overview data={data} />;
+      return <Overview data={data} onNavigate={onNavigate} />;
     case "ranking":
       return <Ranking data={data} />;
     case "reports":
@@ -81,57 +95,139 @@ export function TeamContent({ module, data }: { module: TeamModule; data: Dashbo
   }
 }
 
-function Overview({ data }: { data: DashboardData }) {
+function Overview({ data, onNavigate }: { data: DashboardData; onNavigate: () => void }) {
   const me = data.players.find((player) => player.user_id === data.membership.id);
+  const role = data.membership.role;
+  const reviewCount = data.jobs.filter((job) => job.status === "awaiting_review").length;
+  const pendingCount = data.users.filter((user) => user.status === "pending").length;
+  const primaryModule: TeamModule =
+    role === "owner"
+      ? "users"
+      : role === "coach"
+        ? "scouter"
+        : role === "editor"
+          ? "news"
+          : "reports";
+  const primaryLabel =
+    role === "owner"
+      ? "Gerenciar acessos"
+      : role === "coach"
+        ? "Abrir GameplayScouter"
+        : role === "editor"
+          ? "Trabalhar nas notícias"
+          : "Ver meus relatórios";
+  const intro =
+    role === "owner"
+      ? "Acompanhe as solicitações da equipe e mantenha a operação em dia."
+      : role === "coach"
+        ? "Revise os replays e transforme cada partida em orientação prática."
+        : role === "editor"
+          ? "Organize as publicações e conte as novidades da Moonastery."
+          : "Veja seu progresso e saiba onde concentrar o próximo treino.";
   return (
     <>
-      <Panel
-        title={`Olá, ${data.membership.nick}`}
-        description="Acompanhe seus próximos passos dentro da Moonastery."
-      >
-        <div className="team-stat-grid">
-          <div>
-            <strong>{data.reports.length}</strong>
-            <span>Relatórios disponíveis</span>
-          </div>
-          <div>
-            <strong>{data.instructions.length}</strong>
-            <span>Instruções e planos</span>
-          </div>
-          {staff(data.membership.role) && (
-            <div>
-              <strong>{data.jobs.filter((job) => job.status === "awaiting_review").length}</strong>
-              <span>Replays aguardando validação</span>
-            </div>
-          )}
-          {data.membership.role === "owner" && (
-            <div>
-              <strong>{data.users.filter((user) => user.status === "pending").length}</strong>
-              <span>Cadastros pendentes</span>
-            </div>
-          )}
+      <section className="team-overview-hero" aria-labelledby="overview-title">
+        <div className="team-overview-hero-content">
+          <p className="team-overview-greeting">Seu espaço na Moonastery</p>
+          <h2 id="overview-title">Olá, {data.membership.nick}.</h2>
+          <p>{intro}</p>
+          <Link
+            className="team-button"
+            to="/team"
+            search={{ module: primaryModule }}
+            onClick={onNavigate}
+          >
+            {primaryLabel}
+          </Link>
         </div>
-      </Panel>
-      {me && (
-        <Panel title="Sua carta atual">
+        <img src="/moonastery-icon.png" width="265" height="265" alt="" aria-hidden="true" />
+      </section>
+      <div className="team-overview-metrics" aria-label="Resumo da equipe">
+        {role === "editor" ? (
+          <Link to="/team" search={{ module: "news" }} onClick={onNavigate}>
+            <strong>{data.news.length}</strong>
+            <span>Notícias</span>
+          </Link>
+        ) : (
+          <>
+            <Link to="/team" search={{ module: "reports" }} onClick={onNavigate}>
+              <strong>{data.reports.length}</strong>
+              <span>Relatórios</span>
+            </Link>
+            <Link to="/team" search={{ module: "instructions" }} onClick={onNavigate}>
+              <strong>{data.instructions.length}</strong>
+              <span>Planos e instruções</span>
+            </Link>
+          </>
+        )}
+        {staff(role) && (
+          <Link to="/team" search={{ module: "scouter" }} onClick={onNavigate}>
+            <strong>{reviewCount}</strong>
+            <span>Replays para revisar</span>
+          </Link>
+        )}
+        {role === "owner" && (
+          <Link to="/team" search={{ module: "users" }} onClick={onNavigate}>
+            <strong>{pendingCount}</strong>
+            <span>Acessos pendentes</span>
+          </Link>
+        )}
+      </div>
+      {role === "player" && me && (
+        <Panel title="Minha evolução" description="Sua carta acompanha as análises aprovadas.">
           {me.card ? (
             <PlayerCard player={me} />
           ) : (
-            <Empty>
-              Sua carta será atualizada após a primeira análise válida aprovada pelo coach.
-            </Empty>
+            <Empty>Sua carta aparece após a primeira análise aprovada pelo treinador.</Empty>
           )}
         </Panel>
       )}
-      <Panel title="Objetivos e instruções recentes">
-        {data.instructions.slice(0, 3).map((item) => (
-          <article key={item.id} className="team-list-item">
-            <h3>{item.title}</h3>
-            <p>{item.description}</p>
-          </article>
-        ))}
-        {!data.instructions.length && <Empty>Nenhuma instrução disponível ainda.</Empty>}
+      <Panel title="Para continuar" description="Acesse diretamente o que você precisa fazer.">
+        <div className="team-quick-links">
+          <Link to="/team" search={{ module: primaryModule }} onClick={onNavigate}>
+            <strong>{primaryLabel}</strong>
+            <span>{role === "player" ? "Acompanhe suas avaliações." : intro}</span>
+          </Link>
+          {role === "editor" ? (
+            <Link to="/team" search={{ module: "profile" }} onClick={onNavigate}>
+              <strong>Atualizar meu perfil</strong>
+              <span>Revise seu nome e apresentação.</span>
+            </Link>
+          ) : (
+            <Link to="/team" search={{ module: "instructions" }} onClick={onNavigate}>
+              <strong>Ver planos e instruções</strong>
+              <span>Consulte as orientações mais recentes.</span>
+            </Link>
+          )}
+          {role === "player" && (
+            <Link to="/team" search={{ module: "ranking" }} onClick={onNavigate}>
+              <strong>Ver ranking</strong>
+              <span>Compare seu desempenho com a equipe.</span>
+            </Link>
+          )}
+        </div>
       </Panel>
+      {role !== "editor" && (
+        <Panel title="Orientações recentes">
+          {data.instructions.slice(0, 3).map((item) => (
+            <article key={item.id} className="team-list-item">
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </article>
+          ))}
+          {!data.instructions.length && <Empty>Nenhuma instrução disponível ainda.</Empty>}
+          {data.instructions.length > 0 && (
+            <Link
+              className="team-text-button"
+              to="/team"
+              search={{ module: "instructions" }}
+              onClick={onNavigate}
+            >
+              Ver todas as orientações
+            </Link>
+          )}
+        </Panel>
+      )}
     </>
   );
 }
@@ -189,14 +285,19 @@ function Ranking({ data }: { data: DashboardData }) {
           </table>
         </div>
         {!players.length && <Empty>Nenhum jogador cadastrado.</Empty>}
-        <div className="team-card-grid">
-          {players.map((player) => (
-            <details key={player.id}>
-              <summary>Ver carta de {player.nick}</summary>
-              <PlayerCard player={player} />
-            </details>
-          ))}
-        </div>
+        {players.length > 0 && (
+          <details className="team-ranking-gallery">
+            <summary>Explorar cartas dos jogadores</summary>
+            <div className="team-card-grid">
+              {players.map((player) => (
+                <details key={player.id}>
+                  <summary>{player.nick}</summary>
+                  <PlayerCard player={player} />
+                </details>
+              ))}
+            </div>
+          </details>
+        )}
       </Panel>
     </>
   );
@@ -303,57 +404,74 @@ function Reports({ data }: { data: DashboardData }) {
           )}
         </Panel>
       )}
-      {reports.map((report) => (
-        <Panel key={report.id} title={`Relatório de ${date(report.session_date)}`}>
-          {player && (
-            <PlayerCard
-              player={{
-                ...player,
-                card: {
-                  attributes: report.attributes,
-                  overall: report.overall,
-                  previous_overall: report.previous_overall,
-                  evolution:
-                    report.overall == null || report.previous_overall == null
-                      ? null
-                      : report.overall - report.previous_overall,
-                  report_id: report.id,
-                  approved_at: report.approved_at,
-                },
-              }}
-            />
-          )}
-          <div className="team-feedback">
-            {feedbackFields.map((field) => (
-              <div key={field.name}>
-                <h3>{field.label}</h3>
-                <p>
-                  {(report[field.name as keyof Report] as string) ||
-                    "Ainda não registrado pelo coach."}
-                </p>
-              </div>
+      {reports.length > 0 && (
+        <Panel
+          title="Avaliações e feedback"
+          description="Abra uma sessão para ver a carta e as orientações do treinador."
+        >
+          <div className="team-report-list">
+            {reports.map((report, index) => (
+              <details key={report.id} className="team-report-item" open={index === 0}>
+                <summary>
+                  <span>{date(report.session_date)}</span>
+                  <strong>
+                    {report.overall == null ? "Sem nota" : `Overall ${report.overall.toFixed(2)}`}
+                  </strong>
+                </summary>
+                <div className="team-report-body">
+                  {player && (
+                    <PlayerCard
+                      player={{
+                        ...player,
+                        card: {
+                          attributes: report.attributes,
+                          overall: report.overall,
+                          previous_overall: report.previous_overall,
+                          evolution:
+                            report.overall == null || report.previous_overall == null
+                              ? null
+                              : report.overall - report.previous_overall,
+                          report_id: report.id,
+                          approved_at: report.approved_at,
+                        },
+                      }}
+                    />
+                  )}
+                  <div className="team-feedback">
+                    {feedbackFields.map((field) => (
+                      <div key={field.name}>
+                        <h3>{field.label}</h3>
+                        <p>
+                          {(report[field.name as keyof Report] as string) ||
+                            "Ainda não registrado pelo coach."}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  {staff(data.membership.role) && (
+                    <details>
+                      <summary>Adicionar ou editar feedback qualitativo</summary>
+                      <EditorForm
+                        action="reports.feedback"
+                        initial={{
+                          id: report.id,
+                          positives: report.positives,
+                          improvements: report.improvements,
+                          instructions: report.instructions,
+                          objectives: report.objectives,
+                          recommendations: report.recommendations,
+                          observations: report.observations,
+                        }}
+                        fields={feedbackFields}
+                      />
+                    </details>
+                  )}
+                </div>
+              </details>
             ))}
           </div>
-          {staff(data.membership.role) && (
-            <details>
-              <summary>Adicionar ou editar feedback qualitativo</summary>
-              <EditorForm
-                action="reports.feedback"
-                initial={{
-                  id: report.id,
-                  positives: report.positives,
-                  improvements: report.improvements,
-                  instructions: report.instructions,
-                  objectives: report.objectives,
-                  recommendations: report.recommendations,
-                  observations: report.observations,
-                }}
-                fields={feedbackFields}
-              />
-            </details>
-          )}
         </Panel>
-      ))}
+      )}
     </>
   );
 }
@@ -399,6 +517,9 @@ function Profile({ data }: { data: DashboardData }) {
 function Instructions({ data }: { data: DashboardData }) {
   const [filter, setFilter] = useState("");
   const categories = [...new Set(data.instructions.map((item) => item.category))];
+  const visibleInstructions = data.instructions.filter(
+    (item) => !filter || item.category === filter,
+  );
   return (
     <>
       <Panel title="Biblioteca técnica">
@@ -411,57 +532,54 @@ function Instructions({ data }: { data: DashboardData }) {
             ))}
           </select>
         </label>
-        {!data.instructions.length && (
-          <Empty>As instruções e os planos táticos do coach aparecerão aqui.</Empty>
+        {!visibleInstructions.length && (
+          <Empty>
+            {filter
+              ? "Nenhuma orientação nesta categoria. Escolha outra categoria para continuar."
+              : "As instruções e os planos táticos do treinador aparecerão aqui."}
+          </Empty>
         )}
-        {data.instructions
-          .filter((item) => !filter || item.category === filter)
-          .map((item) => (
-            <article className="team-list-item" key={item.id}>
-              <p className="team-muted">
-                {item.category} · {item.tactical ? "Plano tático" : "Instrução"} ·{" "}
-                {date(item.created_at)}
-              </p>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-              <div className="team-prose">{item.content}</div>
-              <div className="team-media">
-                {item.media.map((media, index) =>
-                  media.type === "image" ? (
-                    <a href={media.url} key={index} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={media.url}
-                        alt={`Imagem da instrução ${item.title}`}
-                        loading="lazy"
-                      />
-                    </a>
-                  ) : (
-                    <a key={index} href={media.url} target="_blank" rel="noopener noreferrer">
-                      {media.type === "video" ? "Assistir vídeo" : "Abrir material"}
-                    </a>
-                  ),
-                )}
-              </div>
-              <p className="team-muted">
-                Autor:{" "}
-                {data.users.find((user) => user.id === item.author_id)?.nick ??
-                  "Coach da Moonastery"}
-              </p>
-              {staff(data.membership.role) && (
-                <details>
-                  <summary>Editar instrução</summary>
-                  <InstructionEditor item={item} data={data} />
-                  <ActionButton
-                    action="instructions.delete"
-                    payload={{ id: item.id }}
-                    confirmation="Excluir esta instrução?"
-                  >
-                    Excluir instrução
-                  </ActionButton>
-                </details>
+        {visibleInstructions.map((item) => (
+          <article className="team-list-item" key={item.id}>
+            <p className="team-muted">
+              {item.category} · {item.tactical ? "Plano tático" : "Instrução"} ·{" "}
+              {date(item.created_at)}
+            </p>
+            <h3>{item.title}</h3>
+            <p>{item.description}</p>
+            <div className="team-prose">{item.content}</div>
+            <div className="team-media">
+              {item.media.map((media, index) =>
+                media.type === "image" ? (
+                  <a href={media.url} key={index} target="_blank" rel="noopener noreferrer">
+                    <img src={media.url} alt={`Imagem da instrução ${item.title}`} loading="lazy" />
+                  </a>
+                ) : (
+                  <a key={index} href={media.url} target="_blank" rel="noopener noreferrer">
+                    {media.type === "video" ? "Assistir vídeo" : "Abrir material"}
+                  </a>
+                ),
               )}
-            </article>
-          ))}
+            </div>
+            <p className="team-muted">
+              Autor:{" "}
+              {data.users.find((user) => user.id === item.author_id)?.nick ?? "Coach da Moonastery"}
+            </p>
+            {staff(data.membership.role) && (
+              <details>
+                <summary>Editar instrução</summary>
+                <InstructionEditor item={item} data={data} />
+                <ActionButton
+                  action="instructions.delete"
+                  payload={{ id: item.id }}
+                  confirmation="Excluir esta instrução?"
+                >
+                  Excluir instrução
+                </ActionButton>
+              </details>
+            )}
+          </article>
+        ))}
       </Panel>
       {staff(data.membership.role) && (
         <Panel title="Nova instrução ou plano tático">
@@ -674,6 +792,7 @@ function Players({ data }: { data: DashboardData }) {
 
 function NewsModule({ data }: { data: DashboardData }) {
   const [filter, setFilter] = useState("");
+  const visibleNews = data.news.filter((news) => !filter || news.status === filter);
   return (
     <>
       <Panel
@@ -691,66 +810,70 @@ function NewsModule({ data }: { data: DashboardData }) {
             ))}
           </select>
         </label>
-        {data.news
-          .filter((news) => !filter || news.status === filter)
-          .map((news) => (
-            <article className="team-list-item" key={news.id}>
-              <h3>{news.title}</h3>
-              <p>
-                {statusLabels[news.status]} · {news.category}
-              </p>
-              {news.review_note && (
-                <p className="team-notice">Observação do owner: {news.review_note}</p>
-              )}
-              {news.status === "published" && (
-                <a href={`/noticias/${news.slug}`} target="_blank" rel="noopener noreferrer">
-                  Ver publicação
-                </a>
-              )}
-              {(data.membership.role === "owner" ||
-                ["draft", "changes_requested", "rejected"].includes(news.status)) && (
-                <details>
-                  <summary>Editar notícia</summary>
-                  <NewsEditor news={news} />
-                </details>
-              )}
-              {["draft", "changes_requested", "rejected"].includes(news.status) && (
-                <ActionButton action="news.submit" payload={{ id: news.id }}>
-                  Enviar para aprovação
+        {visibleNews.map((news) => (
+          <article className="team-list-item" key={news.id}>
+            <h3>{news.title}</h3>
+            <p>
+              {statusLabels[news.status]} · {news.category}
+            </p>
+            {news.review_note && (
+              <p className="team-notice">Observação do owner: {news.review_note}</p>
+            )}
+            {news.status === "published" && (
+              <a href={`/noticias/${news.slug}`} target="_blank" rel="noopener noreferrer">
+                Ver publicação
+              </a>
+            )}
+            {(data.membership.role === "owner" ||
+              ["draft", "changes_requested", "rejected"].includes(news.status)) && (
+              <details>
+                <summary>Editar notícia</summary>
+                <NewsEditor news={news} />
+              </details>
+            )}
+            {["draft", "changes_requested", "rejected"].includes(news.status) && (
+              <ActionButton action="news.submit" payload={{ id: news.id }}>
+                Enviar para aprovação
+              </ActionButton>
+            )}
+            {data.membership.role === "owner" && (
+              <details>
+                <summary>Aprovar ou solicitar alterações</summary>
+                <EditorForm
+                  action="news.review"
+                  initial={{ id: news.id, status: "published", review_note: "" }}
+                  fields={[
+                    {
+                      name: "status",
+                      label: "Decisão editorial",
+                      type: "select",
+                      options: [
+                        { value: "published", label: "Aprovar e publicar" },
+                        { value: "changes_requested", label: "Solicitar ajustes" },
+                        { value: "rejected", label: "Reprovar" },
+                      ],
+                    },
+                    textField("review_note", "Observação para o editor", "textarea"),
+                  ]}
+                />
+                <ActionButton
+                  action="news.delete"
+                  payload={{ id: news.id }}
+                  confirmation="Excluir esta notícia?"
+                >
+                  Excluir notícia
                 </ActionButton>
-              )}
-              {data.membership.role === "owner" && (
-                <details>
-                  <summary>Aprovar ou solicitar alterações</summary>
-                  <EditorForm
-                    action="news.review"
-                    initial={{ id: news.id, status: "published", review_note: "" }}
-                    fields={[
-                      {
-                        name: "status",
-                        label: "Decisão editorial",
-                        type: "select",
-                        options: [
-                          { value: "published", label: "Aprovar e publicar" },
-                          { value: "changes_requested", label: "Solicitar ajustes" },
-                          { value: "rejected", label: "Reprovar" },
-                        ],
-                      },
-                      textField("review_note", "Observação para o editor", "textarea"),
-                    ]}
-                  />
-                  <ActionButton
-                    action="news.delete"
-                    payload={{ id: news.id }}
-                    confirmation="Excluir esta notícia?"
-                  >
-                    Excluir notícia
-                  </ActionButton>
-                </details>
-              )}
-            </article>
-          ))}
-        {!data.news.length && <Empty>Nenhuma notícia cadastrada.</Empty>}
+              </details>
+            )}
+          </article>
+        ))}
+        {!visibleNews.length && (
+          <Empty>
+            {filter
+              ? "Nenhuma notícia com este status. Selecione outro status."
+              : "Nenhuma notícia cadastrada."}
+          </Empty>
+        )}
       </Panel>
       <Panel title="Criar notícia">
         <NewsEditor />
@@ -791,6 +914,7 @@ function NewsEditor({ news }: { news?: News }) {
 
 function Submissions({ data }: { data: DashboardData }) {
   const [filter, setFilter] = useState("");
+  const visibleSubmissions = data.submissions.filter((item) => !filter || item.category === filter);
   const categories = [
     { value: "suggestion", label: "Sugestão" },
     { value: "technical", label: "Problema técnico" },
@@ -828,37 +952,41 @@ function Submissions({ data }: { data: DashboardData }) {
             ))}
           </select>
         </label>
-        {data.submissions
-          .filter((item) => !filter || item.category === filter)
-          .map((item) => (
-            <article className="team-list-item" key={item.id}>
-              <p className="team-muted">
-                {date(item.created_at)} · {statusLabels[item.status]}
-              </p>
-              <h3>{item.title}</h3>
-              <p className="team-prose">{item.description}</p>
-              {item.response && <p className="team-notice">Resposta do owner: {item.response}</p>}
-              {data.membership.role === "owner" && (
-                <EditorForm
-                  action="submissions.update"
-                  initial={{ id: item.id, status: item.status, response: item.response }}
-                  fields={[
-                    {
-                      name: "status",
-                      label: "Status",
-                      type: "select",
-                      options: ["open", "reviewing", "resolved", "dismissed"].map((value) => ({
-                        value,
-                        label: statusLabels[value],
-                      })),
-                    },
-                    textField("response", "Resposta ou observação administrativa", "textarea"),
-                  ]}
-                />
-              )}
-            </article>
-          ))}
-        {!data.submissions.length && <Empty>Nenhum envio disponível.</Empty>}
+        {visibleSubmissions.map((item) => (
+          <article className="team-list-item" key={item.id}>
+            <p className="team-muted">
+              {date(item.created_at)} · {statusLabels[item.status]}
+            </p>
+            <h3>{item.title}</h3>
+            <p className="team-prose">{item.description}</p>
+            {item.response && <p className="team-notice">Resposta do owner: {item.response}</p>}
+            {data.membership.role === "owner" && (
+              <EditorForm
+                action="submissions.update"
+                initial={{ id: item.id, status: item.status, response: item.response }}
+                fields={[
+                  {
+                    name: "status",
+                    label: "Status",
+                    type: "select",
+                    options: ["open", "reviewing", "resolved", "dismissed"].map((value) => ({
+                      value,
+                      label: statusLabels[value],
+                    })),
+                  },
+                  textField("response", "Resposta ou observação administrativa", "textarea"),
+                ]}
+              />
+            )}
+          </article>
+        ))}
+        {!visibleSubmissions.length && (
+          <Empty>
+            {filter
+              ? "Nenhum envio nesta categoria. Selecione outra categoria."
+              : "Nenhum envio disponível."}
+          </Empty>
+        )}
       </Panel>
     </>
   );

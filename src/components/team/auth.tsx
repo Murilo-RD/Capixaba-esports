@@ -88,21 +88,21 @@ export function TeamAuth({
     }
   }
   const titles = {
-    login: "Bem-vindo à equipe",
-    register: "Solicitar cadastro",
+    login: "Entre na sua conta",
+    register: "Peça acesso à equipe",
     recover: "Recuperar senha",
     password: "Criar uma nova senha",
   };
   return (
     <div className="team-auth">
       <div className="team-auth-story">
-        <img src="/moonastery-icon.png" alt="Moonastery E-Sports" />
+        <img src="/moonastery-icon.png" width="110" height="110" alt="Moonastery E-Sports" />
         <h1>
-          Seu próximo
+          Sua equipe.
           <br />
-          nível começa aqui.
+          Seu próximo passo.
         </h1>
-        <p>O espaço da equipe para transformar cada treino em evolução.</p>
+        <p>Treinos, análises e planos em um só lugar.</p>
         <a href="/">Voltar ao site</a>
       </div>
       <section className="team-auth-box" aria-labelledby="auth-title">

@@ -29,8 +29,8 @@ test("role navigation restricts editor, coach and player administrative modules"
   assert(permittedModules(member("player")).includes("reports"));
   assert(!permittedModules(member("player")).includes("scouter"));
   assert(permittedModules(member("owner")).includes("users"));
-  assert.equal(defaultModule("editor"), "news");
-  assert.equal(defaultModule("coach"), "scouter");
+  for (const role of ["owner", "editor", "coach", "player"] as const)
+    assert.equal(defaultModule(role), "overview");
 });
 test("profile update rejects privilege and approval field injection", () => {
   const input = { nick: "Fixture", bio: "", photo_url: null };

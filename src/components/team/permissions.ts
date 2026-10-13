@@ -52,12 +52,6 @@ const access: Record<Role, TeamModule[]> = {
 export function permittedModules(membership: Membership): TeamModule[] {
   return membership.status === "approved" && membership.role ? access[membership.role] : [];
 }
-export function defaultModule(role: Role | null): TeamModule {
-  return role === "editor"
-    ? "news"
-    : role === "coach"
-      ? "scouter"
-      : role === "owner"
-        ? "users"
-        : "overview";
+export function defaultModule(_role: Role | null): TeamModule {
+  return "overview";
 }

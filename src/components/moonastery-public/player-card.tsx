@@ -15,7 +15,7 @@ const attributes: [Attribute, string][] = [
   ["BST", "Gestão de boost"],
   ["IMP", "Impacto geral"],
 ];
-const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
 export function PlayerEvolution({ value }: { value: number | null | undefined }) {
   if (value == null) return <span className="moon-evolution">Sem comparação</span>;

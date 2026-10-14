@@ -224,7 +224,7 @@ function HomeSections({ data }: { data: PublicHome }) {
       </section>
       <section id="noticias" className="moon-section moon-container">
         <SectionHeading
-          title="Dentro da nossa órbita"
+          title="Por dentro do cenário"
           description="Notícias, conquistas e os próximos capítulos da Moonastery."
         />
         {news.length ? (

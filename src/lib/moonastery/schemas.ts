@@ -64,7 +64,21 @@ export const actionSchemas = {
     .refine((v) => v.status !== "approved" || v.role !== null, "A aprovação exige uma função."),
   "users.create": z.object({ email: z.string().email().max(254), nick: title, role }).strict(),
   "users.remove": identifier,
-  "profile.update": z.object({ nick: title, bio: text, photo_url: optionalUrl }).strict(),
+  "profile.update": z
+    .object({
+      nick: title,
+      bio: text,
+      photo_url: optionalUrl,
+      platform: z.enum(["steam", "epic", "ps4"]).nullable().optional(),
+      platform_id: z.string().trim().min(1).max(128).nullable().optional(),
+    })
+    .strict()
+    .refine(
+      (v) =>
+        (v.platform === undefined) === (v.platform_id === undefined) &&
+        (v.platform === undefined || Boolean(v.platform) === Boolean(v.platform_id)),
+      "Informe plataforma e identificação juntas.",
+    ),
   "players.update": z
     .object({
       id,

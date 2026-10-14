@@ -36,6 +36,25 @@ test("role navigation restricts editor, coach and player administrative modules"
 test("profile update rejects privilege and approval field injection", () => {
   const input = { nick: "Fixture", bio: "", photo_url: null };
   assert(actionSchemas["profile.update"].safeParse(input).success);
+  assert(
+    actionSchemas["profile.update"].safeParse({
+      ...input,
+      platform: "epic",
+      platform_id: "fixture-epic-id",
+    }).success,
+  );
+  assert(
+    !actionSchemas["profile.update"].safeParse({ ...input, platform: "epic" }).success,
+    "platform and platform_id must be supplied together",
+  );
+  assert(
+    actionSchemas["profile.update"].safeParse({
+      ...input,
+      platform: null,
+      platform_id: null,
+    }).success,
+    "both identity fields can be cleared together",
+  );
   assert(!actionSchemas["profile.update"].safeParse({ ...input, role: "owner" }).success);
   assert(!actionSchemas["profile.update"].safeParse({ ...input, status: "approved" }).success);
   assert(!actionSchemas["profile.update"].safeParse({ ...input, user_id: id }).success);

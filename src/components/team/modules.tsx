@@ -560,7 +560,7 @@ function Profile({ data }: { data: DashboardData }) {
   return (
     <Panel
       title="Meu perfil"
-      description="Sua foto aparece na carta. Apenas seu nick, foto e apresentação podem ser alterados aqui."
+      description="Atualize seu nick, foto, apresentação e conta de jogo. Plataforma e ID permitem que o GameplayScouter reconheça você nos replays."
     >
       <EditorForm
         action="profile.update"
@@ -568,6 +568,8 @@ function Profile({ data }: { data: DashboardData }) {
           nick: data.membership.nick,
           bio: player?.bio ?? "",
           photo_url: player?.photo_url ?? null,
+          platform: player?.platform ?? null,
+          platform_id: player?.platform_id ?? null,
         }}
         fields={[
           textField("nick", "Nick", "text", true),
@@ -578,6 +580,23 @@ function Profile({ data }: { data: DashboardData }) {
             type: "image",
             purpose: "avatar",
             help: "PNG, JPEG ou WebP de até 5 MB.",
+          },
+          {
+            name: "platform",
+            label: "Plataforma do Rocket League",
+            type: "select",
+            nullable: true,
+            options: [
+              { value: "steam", label: "Steam" },
+              { value: "epic", label: "Epic Games" },
+              { value: "ps4", label: "PlayStation" },
+            ],
+          },
+          {
+            name: "platform_id",
+            label: "Seu ID na plataforma",
+            nullable: true,
+            help: "Use o mesmo ID de jogador que aparece nos replays. Informe a plataforma e o ID juntos.",
           },
         ]}
       />

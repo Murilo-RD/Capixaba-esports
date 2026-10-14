@@ -221,6 +221,25 @@
 .moon-desktop-nav a:hover {
   color: #00b5f5;
 }
+.moon-desktop-nav .moon-nav-contact {
+  min-height: 42px;
+  padding-inline: 14px;
+  border: 1px solid #00b5f5;
+  border-radius: 6px;
+  color: #fff;
+  white-space: nowrap;
+}
+.moon-desktop-nav .moon-nav-contact:hover {
+  background: #00b5f5;
+  color: #05080c;
+}
+.moon-nav-contact-short {
+  display: none;
+}
+.moon-nav-contact:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
 .moon-menu-trigger {
   display: none;
 }
@@ -1221,6 +1240,15 @@ a.moon-partner:hover {
   }
   .moon-desktop-nav a {
     font-size: 12px;
+  }
+  .moon-desktop-nav .moon-nav-contact {
+    padding-inline: 10px;
+  }
+  .moon-nav-contact-label {
+    display: none;
+  }
+  .moon-nav-contact-short {
+    display: inline;
   }
   .moon-hero-layout {
     min-height: 560px;

@@ -7,10 +7,11 @@ export const Route = createFileRoute("/contato")({
   component: Contact,
   head: () => ({
     meta: [
-      { title: "Denúncias e sugestões | Moonastery E-Sports" },
+      { title: "Denúncias e recomendações | Moonastery E-Sports" },
       {
         name: "description",
-        content: "Envie uma denúncia, sugestão ou mensagem para a Moonastery E-Sports.",
+        content:
+          "Envie uma denúncia, recomendação ou mensagem à Moonastery E-Sports, sem criar uma conta.",
       },
     ],
   }),
@@ -23,10 +24,10 @@ function Contact() {
       <main id="conteudo" className="moon-container moon-contact-page">
         <div className="moon-contact-card">
           <p className="moon-hero-intro">Fale com a Moonastery</p>
-          <h1>Denúncias e sugestões</h1>
+          <h1>Denúncias e recomendações</h1>
           <p className="moon-contact-description">
-            Este canal está aberto a jogadores, fãs e qualquer pessoa da comunidade. As mensagens
-            são encaminhadas à equipe para análise.
+            Qualquer pessoa pode enviar uma denúncia, recomendação ou sugestão à Moonastery. Não é
+            preciso ter uma conta; as mensagens são encaminhadas à equipe para análise.
           </p>
           <PublicSubmissionForm />
         </div>

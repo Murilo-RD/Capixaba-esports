@@ -47,7 +47,7 @@ export function PublicSubmissionForm() {
       <label>
         Categoria
         <select value={category} onChange={(event) => setCategory(event.target.value)}>
-          <option value="suggestion">Sugestão</option>
+          <option value="suggestion">Recomendação ou sugestão</option>
           <option value="complaint">Denúncia</option>
           <option value="technical">Problema técnico</option>
           <option value="other">Outro assunto</option>

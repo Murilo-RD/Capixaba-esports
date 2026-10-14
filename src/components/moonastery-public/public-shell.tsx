@@ -73,6 +73,16 @@ export function PublicShell({
               {name}
             </a>
           ))}
+          <a
+            className="moon-nav-contact"
+            href="/contato"
+            aria-label="Enviar denúncia ou recomendação"
+          >
+            <span className="moon-nav-contact-label">Denúncias e recomendações</span>
+            <span className="moon-nav-contact-short" aria-hidden="true">
+              Canal público
+            </span>
+          </a>
         </nav>
         <Dialog.Root>
           <Dialog.Trigger className="moon-menu-trigger" aria-label="Abrir menu">
@@ -93,7 +103,7 @@ export function PublicShell({
                   </Dialog.Close>
                 ))}
                 <Dialog.Close asChild>
-                  <a href="/contato">Denúncias e sugestões</a>
+                  <a href="/contato">Denúncias e recomendações</a>
                 </Dialog.Close>
               </nav>
             </Dialog.Content>
@@ -123,7 +133,7 @@ export function PublicShell({
                 {name}
               </a>
             ))}
-            <a href="/contato">Denúncias e sugestões</a>
+            <a href="/contato">Denúncias e recomendações</a>
           </nav>
           <div>
             <h2>Conecte-se</h2>

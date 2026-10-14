@@ -1461,6 +1461,15 @@ function JobDetails({ job }: { job: ReplayJob }) {
     queryKey: ["moon-team", "job", job.id, job.updated_at],
     queryFn: () =>
       moonRequest<{
+        job: {
+          config_snapshot: {
+            baseline?: {
+              version?: string;
+              playlist?: string;
+              metrics?: Record<string, unknown>;
+            } | null;
+          } | null;
+        };
         players: {
           player_id: string;
           attributes: Record<string, number | null>;
@@ -1478,8 +1487,14 @@ function JobDetails({ job }: { job: ReplayJob }) {
         {query.error.message}
       </p>
     );
+  const baseline = query.data?.job.config_snapshot?.baseline;
   return (
     <>
+      <p className="team-muted" role="status">
+        {baseline
+          ? `Baseline aplicada nesta análise: ${baseline.version ?? "sem versão"} · ${baseline.playlist ?? "modalidade desconhecida"} · ${Object.keys(baseline.metrics ?? {}).length} métricas.`
+          : "Esta análise não usou baseline. Salve a configuração e use Reprocessar para recalcular este replay."}
+      </p>
       {query.data?.players.length ? (
         query.data.players.map((player) => (
           <div key={player.player_id}>
@@ -1509,6 +1524,7 @@ function JobDetails({ job }: { job: ReplayJob }) {
                   {
                     metricas: player.raw_metrics,
                     confiabilidade: player.confidence,
+                    motivos: (player.confidence as { reasons?: unknown } | null)?.reasons ?? [],
                     alertas: player.alerts,
                   },
                   null,

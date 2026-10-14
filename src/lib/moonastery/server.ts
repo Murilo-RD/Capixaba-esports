@@ -269,6 +269,7 @@ export async function handleMoonRequest(request: Request) {
   };
   const data = payload as ParsedPayload;
   const id = data.id as string;
+  let response: unknown = { ok: true };
   if (body.action === "dashboard.get") {
     const owner = role === "owner",
       staff = owner || role === "coach",
@@ -636,7 +637,6 @@ export async function handleMoonRequest(request: Request) {
         .from("moon_jobs")
         .update({
           status: "pending",
-          attempt: Number(row.attempt) + 1,
           error_message: null,
           updated_at: new Date().toISOString(),
         })
@@ -644,6 +644,8 @@ export async function handleMoonRequest(request: Request) {
         .eq("status", row.status)
         .eq("attempt", row.attempt),
     );
+    const { processReplayJob } = await import("@/lib/gameplay-scouter/pipeline.server");
+    response = await processReplayJob(db, id, user.id);
   } else if (body.action === "audit.list") {
     allow("owner");
     return checked(
@@ -700,7 +702,7 @@ export async function handleMoonRequest(request: Request) {
     }
   }
   await audit(db, user.id, body.action, id);
-  return { ok: true };
+  return response;
 }
 
 export function apiResponse(data: unknown, status = 200) {

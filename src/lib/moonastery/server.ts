@@ -675,6 +675,10 @@ export async function handleMoonRequest(request: Request) {
         .from("moon_scoring")
         .upsert({ id: "default", config, updated_at: new Date().toISOString() }),
     );
+  } else if (body.action === "players.recalculate") {
+    allow("owner", "coach");
+    const { recalculatePlayer } = await import("@/lib/gameplay-scouter/recalculate.server");
+    return recalculatePlayer(db, user.id, id);
   } else if (body.action === "jobs.approve") {
     allow("owner", "coach");
     return checked(db.rpc("moon_approve_job", { actor_id: user.id, job_id: id }));

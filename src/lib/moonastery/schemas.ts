@@ -253,6 +253,7 @@ export const actionSchemas = {
     .strict(),
   "scoring.reference.clear": empty,
   "jobs.approve": identifier,
+  "players.recalculate": identifier,
   "jobs.detail": identifier,
   "jobs.process": identifier,
   "audit.list": z.object({ offset: z.number().int().min(0).max(100000).optional() }).strict(),

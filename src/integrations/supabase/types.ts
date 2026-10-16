@@ -824,6 +824,16 @@ export type Database = {
         Args: { actor_id: string; member_id: string; new_status: string; new_role: string };
         Returns: undefined;
       };
+      moon_recalculate_player: {
+        Args: {
+          actor_id: string;
+          target_player_id: string;
+          expected_config: Json;
+          scoring_config: Json;
+          replay_results: Json;
+        };
+        Returns: Json;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

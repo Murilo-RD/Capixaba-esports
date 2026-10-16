@@ -17,6 +17,7 @@ import type {
 import { PlayerCard } from "@/components/moonastery-public/player-card";
 import { PlatformIdHelp } from "./platform-id-help";
 import { BaselineSettings } from "./baseline-settings";
+import { PlayerRecalculation } from "./player-recalculation";
 import { DEFAULT_SCORING_SETTINGS } from "@/lib/gameplay-scouter/config";
 import { ActionButton, EditorForm, Empty, Panel, type Field, type FormValue } from "./form";
 import type { TeamModule } from "./permissions";
@@ -843,6 +844,10 @@ function Players({ data }: { data: DashboardData }) {
                 />
               )}
               <details>
+                <summary>Recalcular métricas de {player.nick}</summary>
+                <PlayerRecalculation players={[player]} />
+              </details>
+              <details>
                 <summary>Conta do jogo e informações públicas</summary>
                 <EditorForm
                   action="players.update"
@@ -1424,6 +1429,12 @@ function Scouter({ data }: { data: DashboardData }) {
         </form>
       </Panel>
       <Panel
+        title="Recalcular por jogador"
+        description="Atualize as métricas usando todos os replays já analisados do jogador, incluindo os aprovados."
+      >
+        <PlayerRecalculation players={data.players} />
+      </Panel>
+      <Panel
         title="Fila de processamento"
         description="Verifique as métricas extraídas antes de aprovar. Replays duplicados não contam novamente."
       >
@@ -1512,6 +1523,9 @@ function JobDetails({ job }: { job: ReplayJob }) {
         players: {
           player_id: string;
           player: { nick: string } | null;
+          config_snapshot: {
+            baseline?: { version?: string; cohort?: string; playlist?: string } | null;
+          } | null;
           attributes: Record<string, number | null>;
           raw_metrics: Record<string, number | null>;
           confidence: unknown;
@@ -1532,16 +1546,21 @@ function JobDetails({ job }: { job: ReplayJob }) {
     <>
       <p className="team-muted" role="status">
         {baseline
-          ? `${baseline.cohort === "GENERIC" ? "Referência genérica provisória" : baseline.cohort === "PLAYER" ? "Referência individual" : "Baseline SSL"} aplicada nesta análise: ${baseline.version ?? "sem versão"} · ${baseline.playlist === "*" ? "todos os modos" : (baseline.playlist ?? "modalidade desconhecida")} · ${Object.keys(baseline.metrics ?? {}).length} métricas.`
+          ? `Configuração original da análise: ${baseline.cohort === "GENERIC" ? "referência genérica provisória" : baseline.cohort === "PLAYER" ? "referência individual" : "baseline SSL"} · ${baseline.version ?? "sem versão"} · ${baseline.playlist === "*" ? "todos os modos" : (baseline.playlist ?? "modalidade desconhecida")} · ${Object.keys(baseline.metrics ?? {}).length} métricas. A referência atual de cada participante aparece abaixo.`
           : query.data?.job.config_snapshot?.reference_player
             ? `Referência de ${query.data.job.config_snapshot.reference_player.nick} selecionada, mas ainda sem amostras suficientes para este modo. Processe mais replays desse jogador e depois reprocese esta análise.`
-            : "Esta análise não usou baseline. Escolha um jogador de referência nas Configurações e use Reprocessar para recalcular este replay."}
+            : "A configuração original desta análise não usou baseline. Confira a referência usada nas métricas de cada jogador abaixo."}
       </p>
       {query.data?.players.length ? (
         query.data.players.map((player) => (
           <div key={player.player_id}>
             <h4>{player.player?.nick || "Participante identificado"}</h4>
             <p className="team-muted">ID do jogador: {player.player_id}</p>
+            <p className="team-muted">
+              Referência usada nas métricas:{" "}
+              {player.config_snapshot?.baseline?.version ??
+                "sem baseline disponível para este modo"}
+            </p>
             <div className="team-table-wrap">
               <table>
                 <thead>

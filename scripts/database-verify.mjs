@@ -299,6 +299,122 @@ await fails(
     ),
   "replay SHA duplicate",
 );
+// Recalculation replaces evidence for one player and reconstructs approved nights atomically.
+const recalcConfig = { evolution: { smoothing: 0.2, maximum_nightly_increase: 1 } };
+await db.query(
+  `INSERT INTO public.moon_scoring(id,config) VALUES('default',$1) ON CONFLICT(id) DO UPDATE SET config=excluded.config`,
+  [recalcConfig],
+);
+await db.query(
+  `UPDATE public.moon_reports SET observations='Keep coach feedback' WHERE player_id=$1`,
+  [playerA],
+);
+await db.query(
+  `INSERT INTO public.moon_job_players(job_id,player_id,attributes,raw_metrics) VALUES($1,$2,$3,'{}')`,
+  [
+    first,
+    playerB,
+    Object.fromEntries(["VEL", "FIN", "CRI", "DEF", "POS", "BST", "IMP"].map((k) => [k, 88])),
+  ],
+);
+const untouchedPlayer = (
+  await db.query(`SELECT * FROM public.moon_job_players WHERE player_id=$1`, [playerB])
+).rows;
+async function recalcInput() {
+  const entries = (
+    await db.query(
+      `SELECT j.*,j.updated_at::text AS updated_at,j.session_date::text AS session_date FROM public.moon_jobs j JOIN public.moon_job_players jp ON jp.job_id=j.id WHERE jp.player_id=$1 AND j.status IN ('approved','awaiting_review') ORDER BY j.id`,
+      [playerA],
+    )
+  ).rows;
+  return entries.map((j) => ({
+    job_id: j.id,
+    status: j.status,
+    attempt: j.attempt,
+    updated_at: j.updated_at,
+    account: { platform: null, platform_id: null },
+    evaluation: {
+      player_id: playerA,
+      attributes: Object.fromEntries(
+        ["VEL", "FIN", "CRI", "DEF", "POS", "BST", "IMP"].map((k) => [
+          k,
+          j.session_date === "2026-10-10" ? 50 : 99,
+        ]),
+      ),
+      confidence: Object.fromEntries(
+        ["VEL", "FIN", "CRI", "DEF", "POS", "BST", "IMP"].map((k) => [k, 1]),
+      ),
+      raw_metrics: {},
+      alerts: [],
+      reasons: [],
+      opponent: {},
+      config_snapshot: recalcConfig,
+    },
+  }));
+}
+const applyRecalc = (actor, input, config = recalcConfig) =>
+  db.query(`SELECT public.moon_recalculate_player($1,$2,$3,$3,$4) AS result`, [
+    actor,
+    playerA,
+    config,
+    input,
+  ]);
+const initialInput = await recalcInput();
+await as("authenticated", ids.a, () =>
+  fails(() => applyRecalc(ids.a, initialInput), "player cannot call recalculation"),
+);
+await as("service_role", ids.coach, async () => {
+  await fails(() => applyRecalc(ids.editor, initialInput), "editor cannot recalculate");
+  await fails(() => applyRecalc(ids.coach, initialInput, {}), "changed scoring config");
+  const broken = structuredClone(initialInput);
+  broken[broken.length - 1].attempt += 1;
+  const auditBefore = (await db.query(`SELECT count(*) AS n FROM public.moon_audit`)).rows[0].n;
+  await fails(() => applyRecalc(ids.coach, broken), "stale attempt rolls back every change");
+  const unchanged = (
+    await db.query(
+      `SELECT attributes FROM public.moon_job_players WHERE job_id=$1 AND player_id=$2`,
+      [first, playerA],
+    )
+  ).rows[0];
+  assert.equal(unchanged.attributes.VEL, 80);
+  assert.equal(
+    (await db.query(`SELECT count(*) AS n FROM public.moon_audit`)).rows[0].n,
+    auditBefore,
+  );
+  checks += 2;
+  const result = (await applyRecalc(ids.coach, initialInput)).rows[0].result;
+  assert.equal(result.reports, 2);
+  assert.equal(result.replays, initialInput.length);
+  const recalculated = (
+    await db.query(`SELECT * FROM public.moon_cards WHERE player_id=$1`, [playerA])
+  ).rows[0];
+  assert.equal(Number(recalculated.overall), 51);
+  assert.equal(Number(recalculated.previous_overall), 50);
+  const reports = (
+    await db.query(`SELECT * FROM public.moon_reports WHERE player_id=$1 ORDER BY session_date`, [
+      playerA,
+    ])
+  ).rows;
+  assert(reports.every((r) => r.observations === "Keep coach feedback"));
+  assert.equal(reports[1].baseline_attributes.VEL, 50);
+  assert.equal(
+    (await db.query(`SELECT status FROM public.moon_jobs WHERE id=$1`, [old])).rows[0].status,
+    "awaiting_review",
+  );
+  assert.deepEqual(
+    (await db.query(`SELECT * FROM public.moon_job_players WHERE player_id=$1`, [playerB])).rows,
+    untouchedPlayer,
+  );
+  await applyRecalc(ids.coach, await recalcInput());
+  assert.equal(
+    Number(
+      (await db.query(`SELECT overall FROM public.moon_cards WHERE player_id=$1`, [playerA]))
+        .rows[0].overall,
+    ),
+    51,
+  );
+  checks += 9;
+});
 console.log(
   `PASS: ${checks} migration, RLS, role, approval, inflation, history, identity and editorial checks.`,
 );

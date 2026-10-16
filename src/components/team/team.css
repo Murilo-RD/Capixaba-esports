@@ -112,6 +112,33 @@
   padding: 32px 40px;
   max-width: 1600px;
 }
+.team-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  margin: 0 40px;
+  padding: 20px 0 24px;
+  border-top: 1px solid #292b33;
+  color: #a8afbf;
+  font-size: 12px;
+}
+.team-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+.team-footer a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  color: #c4c7d0;
+}
+.team-footer a:hover,
+.team-footer a:focus-visible {
+  color: #55d2ff;
+}
 .team-panel {
   background: #101116;
   border: 1px solid #292b33;
@@ -1228,6 +1255,14 @@
   }
   .team-main {
     padding: 20px 14px 48px;
+  }
+  .team-footer {
+    margin-inline: 14px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .team-footer nav {
+    gap: 6px 16px;
   }
   .team-overview-hero {
     min-height: 228px;

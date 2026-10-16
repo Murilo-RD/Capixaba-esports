@@ -135,6 +135,12 @@ export function PublicShell({
             ))}
             <a href="/contato">Denúncias e recomendações</a>
           </nav>
+          <nav aria-label="Informações legais">
+            <h2>Informações</h2>
+            <a href="/privacidade">Privacidade e dados</a>
+            <a href="/termos">Termos de uso</a>
+            <a href="/contato">Fale com a Moonastery</a>
+          </nav>
           <div>
             <h2>Conecte-se</h2>
             {activeSocials.length ? (
@@ -160,7 +166,9 @@ export function PublicShell({
           </div>
         </div>
         <div className="moon-container moon-footer-bottom">
-          <p>© {new Date().getUTCFullYear()} Moonastery E-Sports. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} Moonastery E-Sports. Todos os direitos reservados.</p>
+          <a href="/privacidade">Privacidade</a>
+          <a href="/termos">Termos de uso</a>
           <a href="/team">Área da equipe</a>
         </div>
       </footer>

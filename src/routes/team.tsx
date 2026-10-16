@@ -173,46 +173,61 @@ function Team() {
   }
   if (!ready)
     return (
-      <main className="team-status" role="status">
-        Carregando sua sessão…
-      </main>
+      <>
+        <main className="team-status" role="status">
+          Carregando sua sessão…
+        </main>
+        <TeamFooter />
+      </>
     );
   if (sessionError)
     return (
-      <main className="team-status">
-        <h1>Área da equipe indisponível</h1>
-        <p role="alert">{sessionError}</p>
-        <a href="/">Voltar ao site</a>
-      </main>
+      <>
+        <main className="team-status">
+          <h1>Área da equipe indisponível</h1>
+          <p role="alert">{sessionError}</p>
+          <a href="/">Voltar ao site</a>
+        </main>
+        <TeamFooter />
+      </>
     );
   if (!session || recovery || search.recovery === 1)
     return (
-      <TeamAuth
-        recovery={Boolean(session) && (recovery || search.recovery === 1)}
-        onPasswordSaved={() => {
-          setRecovery(false);
-          void navigate({ search: {} });
-        }}
-      />
+      <>
+        <TeamAuth
+          recovery={Boolean(session) && (recovery || search.recovery === 1)}
+          onPasswordSaved={() => {
+            setRecovery(false);
+            void navigate({ search: {} });
+          }}
+        />
+        <TeamFooter />
+      </>
     );
   if (member.isPending)
     return (
-      <main className="team-status" role="status">
-        Verificando seu acesso…
-      </main>
+      <>
+        <main className="team-status" role="status">
+          Verificando seu acesso…
+        </main>
+        <TeamFooter />
+      </>
     );
   if (member.error || !member.data)
     return (
-      <main className="team-status">
-        <h1>Não foi possível verificar seu acesso</h1>
-        <p role="alert">{member.error?.message}</p>
-        <button className="team-button" onClick={() => void member.refetch()}>
-          Tentar novamente
-        </button>
-        <button className="team-text-button" onClick={() => void logout()}>
-          Sair
-        </button>
-      </main>
+      <>
+        <main className="team-status">
+          <h1>Não foi possível verificar seu acesso</h1>
+          <p role="alert">{member.error?.message}</p>
+          <button className="team-button" onClick={() => void member.refetch()}>
+            Tentar novamente
+          </button>
+          <button className="team-text-button" onClick={() => void logout()}>
+            Sair
+          </button>
+        </main>
+        <TeamFooter />
+      </>
     );
   const membership = member.data;
   if (membership.status !== "approved" || !membership.role) {
@@ -224,18 +239,21 @@ function Team() {
       approved: "Sua função ainda não foi definida. Entre em contato com um owner.",
     };
     return (
-      <main className="team-status">
-        <img src="/moonastery-icon.png" width="100" height="100" alt="Moonastery" />
-        <h1>{membership.status === "pending" ? "Aguardando aprovação" : "Acesso à equipe"}</h1>
-        <p>{descriptions[membership.status]}</p>
-        <button className="team-button" onClick={() => void member.refetch()}>
-          Verificar aprovação
-        </button>
-        <button className="team-text-button" onClick={() => void logout()}>
-          Sair
-        </button>
-        <a href="/">Voltar ao site</a>
-      </main>
+      <>
+        <main className="team-status">
+          <img src="/moonastery-icon.png" width="100" height="100" alt="Moonastery" />
+          <h1>{membership.status === "pending" ? "Aguardando aprovação" : "Acesso à equipe"}</h1>
+          <p>{descriptions[membership.status]}</p>
+          <button className="team-button" onClick={() => void member.refetch()}>
+            Verificar aprovação
+          </button>
+          <button className="team-text-button" onClick={() => void logout()}>
+            Sair
+          </button>
+          <a href="/">Voltar ao site</a>
+        </main>
+        <TeamFooter />
+      </>
     );
   }
   const modules = permittedModules(membership);
@@ -394,7 +412,22 @@ function Team() {
             </nav>
           )}
         </main>
+        <TeamFooter />
       </div>
     </div>
+  );
+}
+
+function TeamFooter() {
+  return (
+    <footer className="team-footer">
+      <span>© {new Date().getFullYear()} Moonastery E-Sports</span>
+      <nav aria-label="Informações legais">
+        <a href="/privacidade">Privacidade e dados</a>
+        <a href="/termos">Termos de uso</a>
+        <a href="/contato">Contato</a>
+        <a href="/">Site público</a>
+      </nav>
+    </footer>
   );
 }

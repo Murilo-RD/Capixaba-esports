@@ -9,16 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as TeamRouteImport } from './routes/team'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NoticiasSlugRouteImport } from './routes/noticias.$slug'
 import { Route as ApiScouterRouteImport } from './routes/api/scouter'
 import { Route as ApiMoonasteryRouteImport } from './routes/api/moonastery'
 
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TeamRoute = TeamRouteImport.update({
   id: '/team',
   path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContatoRoute = ContatoRouteImport.update({
@@ -50,7 +62,9 @@ const ApiMoonasteryRoute = ApiMoonasteryRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/contato': typeof ContatoRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/team': typeof TeamRoute
+  '/termos': typeof TermosRoute
   '/api/moonastery': typeof ApiMoonasteryRoute
   '/api/scouter': typeof ApiScouterRoute
   '/noticias/$slug': typeof NoticiasSlugRoute
@@ -58,7 +72,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contato': typeof ContatoRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/team': typeof TeamRoute
+  '/termos': typeof TermosRoute
   '/api/moonastery': typeof ApiMoonasteryRoute
   '/api/scouter': typeof ApiScouterRoute
   '/noticias/$slug': typeof NoticiasSlugRoute
@@ -67,7 +83,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/contato': typeof ContatoRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/team': typeof TeamRoute
+  '/termos': typeof TermosRoute
   '/api/moonastery': typeof ApiMoonasteryRoute
   '/api/scouter': typeof ApiScouterRoute
   '/noticias/$slug': typeof NoticiasSlugRoute
@@ -77,7 +95,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/contato'
+    | '/privacidade'
     | '/team'
+    | '/termos'
     | '/api/moonastery'
     | '/api/scouter'
     | '/noticias/$slug'
@@ -85,7 +105,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/contato'
+    | '/privacidade'
     | '/team'
+    | '/termos'
     | '/api/moonastery'
     | '/api/scouter'
     | '/noticias/$slug'
@@ -93,7 +115,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/contato'
+    | '/privacidade'
     | '/team'
+    | '/termos'
     | '/api/moonastery'
     | '/api/scouter'
     | '/noticias/$slug'
@@ -102,7 +126,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContatoRoute: typeof ContatoRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   TeamRoute: typeof TeamRoute
+  TermosRoute: typeof TermosRoute
   ApiMoonasteryRoute: typeof ApiMoonasteryRoute
   ApiScouterRoute: typeof ApiScouterRoute
   NoticiasSlugRoute: typeof NoticiasSlugRoute
@@ -110,11 +136,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/team': {
       id: '/team'
       path: '/team'
       fullPath: '/team'
       preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contato': {
@@ -158,7 +198,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContatoRoute: ContatoRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   TeamRoute: TeamRoute,
+  TermosRoute: TermosRoute,
   ApiMoonasteryRoute: ApiMoonasteryRoute,
   ApiScouterRoute: ApiScouterRoute,
   NoticiasSlugRoute: NoticiasSlugRoute,

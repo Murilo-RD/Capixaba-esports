@@ -45,7 +45,6 @@ export async function recalculatePlayer(
   playerId: string,
   options: { provider?: ReplayProvider; pause?: () => Promise<void> } = {},
 ) {
-  const player = await findReferencePlayer(db, playerId, 2);
   const [jobs, settings] = await Promise.all([
     loadPlayerReplayJobs(db, playerId),
     db.from("moon_scoring").select("config").eq("id", "default").maybeSingle(),

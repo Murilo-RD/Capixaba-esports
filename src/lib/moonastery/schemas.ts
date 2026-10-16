@@ -253,6 +253,7 @@ export const actionSchemas = {
     .strict(),
   "scoring.reference.clear": empty,
   "jobs.approve": identifier,
+  "jobs.delete": identifier,
   "players.recalculate": identifier,
   "jobs.detail": identifier,
   "jobs.process": identifier,

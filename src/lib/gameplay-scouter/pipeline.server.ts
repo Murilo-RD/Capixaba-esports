@@ -5,6 +5,8 @@ import type { ReplayProvider } from "./ballchasing.server";
 import { ProviderPendingError } from "./parser";
 import { scoringConfigSchema } from "./config";
 import { evaluateReplay } from "./scoring";
+import { resolveScoringConfig } from "./baseline";
+import { loadReferencePreview } from "./baseline.server";
 import type { Player } from "../moonastery/types";
 
 function checked(error: { message: string } | null, label: string): void {
@@ -182,7 +184,12 @@ export async function processReplayJob(
     ]);
     checked(players.error, "Identificação de jogadores");
     checked(settings.error, "Configuração de avaliação");
-    const config = settings.data?.config ? scoringConfigSchema.parse(settings.data.config) : null;
+    let config = settings.data?.config ? scoringConfigSchema.parse(settings.data.config) : null;
+    if (config?.reference_player) {
+      const reference = await loadReferencePreview(db, config, parsed, { provider });
+      config = { ...config, baselines: reference.baselines };
+    }
+    if (config) config = resolveScoringConfig(config, parsed.playlist, parsed.team_size);
     const evaluation = evaluateReplay(
       parsed,
       (players.data ?? []) as Pick<Player, "id" | "platform" | "platform_id">[],
@@ -194,6 +201,7 @@ export async function processReplayJob(
       match_id: parsed.match_id,
       played_at: parsed.played_at,
       playlist: parsed.playlist,
+      team_size: parsed.team_size,
       duration_seconds: parsed.duration_seconds,
       config_snapshot: config,
       logs: [

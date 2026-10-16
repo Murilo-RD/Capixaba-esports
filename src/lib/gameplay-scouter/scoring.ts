@@ -2,6 +2,7 @@ import type { Attribute, Attributes, Player, PublicPlayer } from "../moonastery/
 import { ATTRIBUTES, emptyAttributes, scoringConfigSchema } from "./config";
 import type { ScoringConfig } from "./config";
 import type { ParsedReplay, ParsedParticipant } from "./parser";
+import { resolveScoringConfig } from "./baseline";
 
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
@@ -99,6 +100,7 @@ export interface TacticalAlert {
 }
 export interface PlayerEvaluation {
   player_id: string;
+  duration_seconds: number;
   attributes: Attributes;
   raw_metrics: Record<string, number | null>;
   confidence: Record<Attribute, number>;
@@ -118,7 +120,10 @@ export function evaluateReplay(
   registered: Pick<Player, "id" | "platform" | "platform_id">[],
   input: ScoringConfig | null,
 ): ReplayEvaluation {
-  const config = input === null ? null : scoringConfigSchema.parse(input);
+  const original = input === null ? null : scoringConfigSchema.parse(input);
+  const config = original
+    ? resolveScoringConfig(original, replay.playlist, replay.team_size)
+    : null;
   const result: ReplayEvaluation = {
     session_date: replay.session_date,
     players: [],
@@ -147,6 +152,7 @@ export function evaluateReplay(
     mapped.add(player.id);
     const evaluation: PlayerEvaluation = {
       player_id: player.id,
+      duration_seconds: participant.duration_seconds,
       attributes: emptyAttributes(),
       raw_metrics: { ...participant.metrics },
       confidence: Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as Record<Attribute, number>,
@@ -160,9 +166,14 @@ export function evaluateReplay(
       },
       reasons: [],
     };
-    if (!config?.baseline) evaluation.reasons.push("Baseline SSL real não configurada.");
-    else if (config.baseline.playlist !== replay.playlist)
-      evaluation.reasons.push("Modalidade do replay não corresponde à baseline SSL.");
+    if (!config?.baseline)
+      evaluation.reasons.push(
+        original?.reference_player
+          ? `O jogador de referência ainda não possui amostras suficientes em ${replay.playlist}.`
+          : original?.baseline
+            ? "Modalidade do replay não corresponde à baseline SSL."
+            : "Baseline SSL real não configurada.",
+      );
     else if (
       replay.duration_seconds < config.reliability.min_duration_seconds ||
       participant.duration_seconds < config.reliability.min_player_duration_seconds
@@ -193,7 +204,7 @@ export function evaluateReplay(
               metric: metric.metric,
               value,
               z: round(z),
-              message: `${metric.metric}: desvio desfavorável de ${round(Math.abs(z))} desvios-padrão em relação à baseline SSL; revisar contexto com o coach.`,
+              message: `${metric.metric}: desvio desfavorável de ${round(Math.abs(z))} desvios-padrão em relação à ${config.baseline.cohort === "PLAYER" ? "referência do jogador" : "baseline SSL"}; revisar contexto com o coach.`,
             });
         }
         evaluation.confidence[attribute] = round(weight);

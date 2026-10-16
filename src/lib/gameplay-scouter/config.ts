@@ -32,28 +32,47 @@ const attributeRule = z
     (v) => new Set(v.metrics.map((m) => m.metric)).size === v.metrics.length,
     "Métricas repetidas.",
   );
+export const baselineSchema = z
+  .object({
+    version: z.string().min(1).max(100),
+    source: z.string().min(1).max(2000),
+    cohort: z.enum(["SSL", "PLAYER"]),
+    playlist: z.string().min(1).max(100),
+    min_samples: z.number().int().min(2),
+    metrics: z.record(
+      z
+        .object({
+          mean: z.number().finite(),
+          stddev: z.number().finite().positive(),
+          samples: z.number().int().min(2),
+        })
+        .strict(),
+    ),
+    match_ids: z.array(z.string().min(1).max(200)).max(200).optional(),
+  })
+  .strict();
+export const referencePlayerSchema = z
+  .object({
+    player_id: z.string().uuid(),
+    nick: z.string().min(1).max(200),
+    platform: z.enum(["steam", "epic", "ps4"]),
+    platform_id: z.string().min(1).max(200),
+    min_samples: z.number().int().min(2).max(100),
+  })
+  .strict();
 export const scoringConfigSchema = z
   .object({
     version: z.string().min(1).max(100),
-    baseline: z
-      .object({
-        version: z.string().min(1).max(100),
-        source: z.string().min(1).max(2000),
-        cohort: z.literal("SSL"),
-        playlist: z.string().min(1).max(100),
-        min_samples: z.number().int().min(2),
-        metrics: z.record(
-          z
-            .object({
-              mean: z.number().finite(),
-              stddev: z.number().finite().positive(),
-              samples: z.number().int().min(2),
-            })
-            .strict(),
-        ),
-      })
-      .strict()
-      .nullable(),
+    baseline: baselineSchema.nullable(),
+    baselines: z
+      .array(baselineSchema)
+      .max(64)
+      .refine(
+        (entries) => new Set(entries.map((entry) => entry.playlist)).size === entries.length,
+        "Use apenas uma baseline por modo de jogo.",
+      )
+      .optional(),
+    reference_player: referencePlayerSchema.nullable().optional(),
     attributes: z
       .object({
         VEL: attributeRule,
@@ -109,6 +128,8 @@ export const scoringConfigSchema = z
   })
   .strict();
 export type ScoringConfig = z.infer<typeof scoringConfigSchema>;
+export type Baseline = z.infer<typeof baselineSchema>;
+export type ReferencePlayer = z.infer<typeof referencePlayerSchema>;
 
 // These are proposed policy weights, never a fabricated SSL distribution.
 const rules = (

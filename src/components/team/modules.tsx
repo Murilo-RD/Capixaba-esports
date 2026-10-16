@@ -16,6 +16,8 @@ import type {
 } from "@/lib/moonastery/types";
 import { PlayerCard } from "@/components/moonastery-public/player-card";
 import { PlatformIdHelp } from "./platform-id-help";
+import { BaselineSettings } from "./baseline-settings";
+import { DEFAULT_SCORING_SETTINGS } from "@/lib/gameplay-scouter/config";
 import { ActionButton, EditorForm, Empty, Panel, type Field, type FormValue } from "./form";
 import type { TeamModule } from "./permissions";
 
@@ -1306,23 +1308,28 @@ function Settings({ data }: { data: DashboardData }) {
         <ArchetypeEditor />
       </Panel>
       <Panel
-        title="Referência SSL e avaliação"
-        description="Configure somente baselines medidas a partir de partidas SSL reais. Sem uma referência válida, o sistema mantém as notas sem avaliação."
+        title="Baseline por jogador"
+        description="Escolha o jogador pelo ID e use seus replays como referência em todos os modos, sem preencher médias e desvios manualmente."
       >
+        <BaselineSettings data={data} />
         <a href="/team?module=scouter">Consultar o processamento de replays</a>
-        <EditorForm
-          action="scoring.save"
-          initial={{ config: data.scoring ?? {} }}
-          fields={[
-            {
-              name: "config",
-              label: "Parâmetros de avaliação e baselines",
-              type: "json",
-              help: "Configuração versionada. Consulte docs/GAMEPLAYSCOUTER.md para métricas, direção, média, desvio padrão, amostra e critérios de confiança. Alterações não modificam avaliações antigas.",
-            },
-          ]}
-          submitLabel="Salvar parâmetros de avaliação"
-        />
+        <details>
+          <summary>Configuração avançada de avaliação</summary>
+          <EditorForm
+            key={JSON.stringify(data.scoring)}
+            action="scoring.save"
+            initial={{ config: data.scoring ?? DEFAULT_SCORING_SETTINGS }}
+            fields={[
+              {
+                name: "config",
+                label: "Parâmetros de avaliação e baselines",
+                type: "json",
+                help: "Ajuste pesos, escala e baselines manuais por modo. Alterações valem apenas para novas análises ou reprocessamentos.",
+              },
+            ]}
+            submitLabel="Salvar parâmetros de avaliação"
+          />
+        </details>
       </Panel>
     </>
   );
@@ -1496,8 +1503,10 @@ function JobDetails({ job }: { job: ReplayJob }) {
             baseline?: {
               version?: string;
               playlist?: string;
+              cohort?: string;
               metrics?: Record<string, unknown>;
             } | null;
+            reference_player?: { nick: string } | null;
           } | null;
         };
         players: {
@@ -1522,8 +1531,10 @@ function JobDetails({ job }: { job: ReplayJob }) {
     <>
       <p className="team-muted" role="status">
         {baseline
-          ? `Baseline aplicada nesta análise: ${baseline.version ?? "sem versão"} · ${baseline.playlist ?? "modalidade desconhecida"} · ${Object.keys(baseline.metrics ?? {}).length} métricas.`
-          : "Esta análise não usou baseline. Salve a configuração e use Reprocessar para recalcular este replay."}
+          ? `${baseline.cohort === "PLAYER" ? "Referência individual" : "Baseline SSL"} aplicada nesta análise: ${baseline.version ?? "sem versão"} · ${baseline.playlist ?? "modalidade desconhecida"} · ${Object.keys(baseline.metrics ?? {}).length} métricas.`
+          : query.data?.job.config_snapshot?.reference_player
+            ? `Referência de ${query.data.job.config_snapshot.reference_player.nick} selecionada, mas ainda sem amostras suficientes para este modo. Processe mais replays desse jogador e depois reprocese esta análise.`
+            : "Esta análise não usou baseline. Escolha um jogador de referência nas Configurações e use Reprocessar para recalcular este replay."}
       </p>
       {query.data?.players.length ? (
         query.data.players.map((player) => (

@@ -22,6 +22,7 @@ export interface ParsedReplay {
   played_at: string;
   session_date: string;
   playlist: string;
+  team_size?: number;
   duration_seconds: number;
   players: ParsedParticipant[];
 }
@@ -170,6 +171,7 @@ export function parseBallchasingReplay(payload: unknown): ParsedReplay {
     played_at: replay.date,
     session_date,
     playlist: replay.playlist_id,
+    team_size: Math.max(replay.blue.players.length, replay.orange.players.length),
     duration_seconds: duration,
     players,
   };

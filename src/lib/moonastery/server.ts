@@ -603,6 +603,45 @@ export async function handleMoonRequest(request: Request) {
   } else if (body.action === "organization.save") {
     allow("owner");
     await checked(db.from("moon_organization").upsert({ ...data, id: "default" }));
+  } else if (body.action.startsWith("scoring.reference.")) {
+    allow("owner");
+    const { scoringConfigSchema, DEFAULT_SCORING_SETTINGS } =
+      await import("@/lib/gameplay-scouter/config");
+    const { findReferencePlayer, loadReferencePreview, BaselineReferenceError } =
+      await import("@/lib/gameplay-scouter/baseline.server");
+    const saved = await checked<{ config: unknown } | null>(
+      db.from("moon_scoring").select("config").eq("id", "default").maybeSingle(),
+    );
+    const config = scoringConfigSchema.parse(saved?.config ?? DEFAULT_SCORING_SETTINGS);
+    try {
+      if (body.action === "scoring.reference.clear") {
+        await checked(
+          db.from("moon_scoring").upsert({
+            id: "default",
+            config: { ...config, reference_player: null, baselines: [] },
+            updated_at: new Date().toISOString(),
+          }),
+        );
+      } else {
+        const reference = await findReferencePlayer(db, data.player_id, data.min_samples);
+        const next = { ...config, reference_player: reference };
+        const preview = await loadReferencePreview(db, next);
+        if (body.action === "scoring.reference.preview") return preview;
+        await checked(
+          db.from("moon_scoring").upsert({
+            id: "default",
+            config: { ...next, baselines: preview.baselines },
+            updated_at: new Date().toISOString(),
+          }),
+        );
+        await audit(db, user.id, body.action, reference.player_id);
+        return preview;
+      }
+    } catch (error) {
+      if (error instanceof BaselineReferenceError)
+        throw new ApiError(error.message, 400, "INVALID_REFERENCE");
+      throw error;
+    }
   } else if (body.action === "scoring.save") {
     allow("owner");
     const { scoringConfigSchema } = await import("@/lib/gameplay-scouter/config");

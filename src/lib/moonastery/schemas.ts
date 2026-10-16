@@ -243,6 +243,13 @@ export const actionSchemas = {
     })
     .strict(),
   "scoring.save": z.object({ config: z.record(z.unknown()) }).strict(),
+  "scoring.reference.preview": z
+    .object({ player_id: id, min_samples: z.number().int().min(2).max(100) })
+    .strict(),
+  "scoring.reference.save": z
+    .object({ player_id: id, min_samples: z.number().int().min(2).max(100) })
+    .strict(),
+  "scoring.reference.clear": empty,
   "jobs.approve": identifier,
   "jobs.detail": identifier,
   "jobs.process": identifier,

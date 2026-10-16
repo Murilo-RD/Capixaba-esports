@@ -24,6 +24,20 @@ São extraídos os contadores e agregados disponíveis de gols, chutes, assistê
 
 ## Configuração e baseline real
 
+### Referência por ID de jogador (fluxo recomendado no painel)
+
+Em **Configurações → Baseline por jogador**, escolha um integrante pelo nick e pelo ID Steam/Epic/PSN exibido na lista, defina o mínimo de partidas por modo (5 por padrão, mínimo 2) e clique em **Usar este jogador em todos os modos**. O perfil precisa ter plataforma e ID cadastrados. A configuração é exclusiva de owners; coaches continuam podendo processar e revisar replays.
+
+O servidor calcula automaticamente médias e desvios amostrais das métricas brutas dos replays processados desse jogador. A seleção vale para todos os modos: ranqueado, casual, extras, torneios e privado. Cada playlist tem sua distribuição; modos genéricos como partidas privadas e torneios também separam o tamanho das equipes. Modos novos retornados pelo provedor são aceitos sem reaproveitar a distribuição de outro modo. A tabela do painel mostra as amostras disponíveis e as modalidades que ainda aguardam partidas.
+
+`reference_player` guarda a identidade selecionada e o mínimo de amostras; `baselines` contém as referências por modo, com `cohort: "PLAYER"`, fonte e IDs das partidas. Cada nova análise atualiza a referência usando até 199 partidas recentes elegíveis, além do replay atual quando o jogador participa. A última tentativa de cada partida prevalece, e jobs descartados/em processamento não participam. Uma baseline individual não certifica rank SSL. Ao desativar esse fluxo, a baseline manual anterior pode voltar a ser usada.
+
+Snapshots novos preservam o tempo de participação e o formato. Para snapshots antigos, o servidor tenta recuperar os dados originais no Ballchasing, com cache de 10 minutos e até 20 consultas novas por requisição. Sem tempo de participação confirmado, a amostra é excluída e o painel informa a limitação. Partidas curtas, valores ausentes, amostras abaixo do mínimo e métricas sem variação não recebem números inventados. Assim, uma modalidade pode ter referência parcial e continuar sem determinados atributos ou overall.
+
+Em 1v1, a referência por jogador remove assistências da composição e usa distância da bola no lugar de distância dos parceiros. As regras remanescentes mantêm pesos somando 1. Os snapshots antigos não são alterados; notas novas ainda exigem aprovação para chegar às cartas.
+
+### Baseline SSL manual e compatibilidade
+
 `scoringConfigSchema` é a validação compartilhada com `scoring.save`; o singleton `moon_scoring.config` contém o objeto completo. `DEFAULT_SCORING_SETTINGS` é uma proposta de política, com `baseline: null`, e não contém médias/desvios SSL inventados. O owner pode ajustar as regras via configuração, enquanto o coach não atribui notas manuais.
 
 Para habilitar notas, forneça uma baseline real com:

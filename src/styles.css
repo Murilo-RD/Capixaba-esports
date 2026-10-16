@@ -796,6 +796,24 @@
 .moon-player-trigger[data-role="owner"] .moon-roster-position {
   border-left-color: #f3c66a;
 }
+.moon-player-card[data-role="coach"] {
+  background: linear-gradient(155deg, #18342e, #101116 50%, #14231f);
+  border-color: #79dfb0;
+  box-shadow: inset -1px -1px #387b60;
+}
+.moon-player-card[data-role="coach"] .moon-card-role,
+.moon-player-trigger[data-role="coach"] .moon-card-role {
+  color: #79dfb0;
+}
+.moon-player-trigger[data-role="coach"] {
+  border-color: #387b60;
+}
+.moon-player-trigger[data-role="coach"]:hover {
+  border-color: #79dfb0;
+}
+.moon-player-trigger[data-role="coach"] .moon-roster-position {
+  border-left-color: #79dfb0;
+}
 .moon-card-attributes {
   display: grid;
   grid-template-columns: 1fr 1fr;

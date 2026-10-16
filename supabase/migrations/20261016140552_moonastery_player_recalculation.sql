@@ -1,5 +1,28 @@
 BEGIN;
 
+-- A missing archetype uses the same generic seven-attribute score as staff cards.
+CREATE OR REPLACE FUNCTION moon_private.overall(attrs jsonb, weights jsonb)
+RETURNS numeric
+LANGUAGE plpgsql IMMUTABLE SECURITY INVOKER SET search_path = ''
+AS $$
+DECLARE
+  key text;
+  total numeric := 0;
+  weight numeric;
+BEGIN
+  IF weights IS NULL THEN
+    weights := '{"VEL":0.142857142857142857,"FIN":0.142857142857142857,"CRI":0.142857142857142857,"DEF":0.142857142857142857,"POS":0.142857142857142857,"BST":0.142857142857142857,"IMP":0.142857142857142857}'::jsonb;
+  END IF;
+  FOREACH key IN ARRAY ARRAY['VEL','FIN','CRI','DEF','POS','BST','IMP'] LOOP
+    weight := (weights->>key)::numeric;
+    IF weight IS NULL OR weight < 0 THEN RAISE EXCEPTION 'INVALID_WEIGHTS'; END IF;
+    IF weight > 0 AND jsonb_typeof(attrs->key) IS DISTINCT FROM 'number' THEN RETURN NULL; END IF;
+    total := total + coalesce((attrs->>key)::numeric, 0) * weight;
+  END LOOP;
+  RETURN round(least(99, greatest(0, total)), 2);
+END;
+$$;
+
 -- The application computes scores from the provider; clients cannot submit numeric overrides.
 CREATE FUNCTION public.moon_recalculate_player(
   actor_id uuid,
@@ -30,6 +53,7 @@ DECLARE
   sources uuid[];
   report_count integer := 0;
   latest_report public.moon_reports%ROWTYPE;
+  player_role text;
   smoothing numeric;
   maximum_growth numeric;
 BEGIN
@@ -107,6 +131,12 @@ BEGIN
   maximum_growth := greatest(0, least(1, (scoring_config->'evolution'->>'maximum_nightly_increase')::numeric));
   SELECT a.weights INTO weights FROM public.moon_archetypes a
   WHERE a.id = profile.archetype_id AND a.active;
+  IF weights IS NULL THEN
+    SELECT m.role INTO player_role FROM public.moon_memberships m WHERE m.id = profile.user_id;
+    IF player_role IN ('owner','coach') THEN
+      weights := '{"VEL":0.142857142857142857,"FIN":0.142857142857142857,"CRI":0.142857142857142857,"DEF":0.142857142857142857,"POS":0.142857142857142857,"BST":0.142857142857142857,"IMP":0.142857142857142857}'::jsonb;
+    END IF;
+  END IF;
 
   -- Rebuild chronologically from approved evidence; pending reviews never update the card.
   FOR night IN

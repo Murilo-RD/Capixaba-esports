@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { actionSchemas, requestSchema } from "./schemas";
 import { isUploadedInstructionImageUrl } from "./media";
+import { staffCardOverall } from "./player-card";
 import type { MoonAction } from "./schemas";
 import type { Membership, PublicHome, Player, PublicPlayer, Archetype, PlayerCard } from "./types";
 
@@ -147,13 +148,23 @@ export async function loadPlayers(
     checked<(PlayerCard & { player_id: string })[]>(db.from("moon_cards").select("*")),
   ]);
   const memberRoles = new Map(members.map((member) => [member.id, member.role]));
-  const enriched = rows.map((p) => ({
-    ...p,
-    role: memberRoles.get(p.user_id)!,
-    archetype: archetypes.find((a) => a.id === p.archetype_id) || null,
-    card: cards.find((c) => c.player_id === p.id) || null,
-    ranking_position: null as number | null,
-  }));
+  const enriched = rows.map((p) => {
+    const role = memberRoles.get(p.user_id)!;
+    const archetype = archetypes.find((a) => a.id === p.archetype_id) || null;
+    const storedCard = cards.find((c) => c.player_id === p.id) || null;
+    const fallbackOverall = storedCard?.overall == null && storedCard
+      ? staffCardOverall(role, archetype, storedCard.attributes)
+      : null;
+    return {
+      ...p,
+      role,
+      archetype,
+      card: storedCard && fallbackOverall != null
+        ? { ...storedCard, overall: fallbackOverall }
+        : storedCard,
+      ranking_position: null as number | null,
+    };
+  });
   enriched.sort(
     (a, b) =>
       (b.card?.overall ?? -1) - (a.card?.overall ?? -1) ||

@@ -148,6 +148,7 @@ export interface Submission {
 export interface ReplayJob {
   id: string;
   replay_id: string;
+  replay?: { filename: string } | null;
   status: JobStatus;
   attempt: number;
   session_date: string | null;

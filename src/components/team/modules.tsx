@@ -1451,7 +1451,10 @@ function Scouter({ data }: { data: DashboardData }) {
 function ReplayReview({ job }: { job: ReplayJob }) {
   return (
     <article className="team-list-item">
-      <h3>Replay · {job.session_date ? date(job.session_date) : date(job.created_at)}</h3>
+      <h3>
+        {job.replay?.filename ?? `Replay ${job.replay_id.slice(0, 8)}`} ·{" "}
+        {job.session_date ? date(job.session_date) : date(job.created_at)}
+      </h3>
       <p>
         {statusLabels[job.status]} · Tentativa {job.attempt}
       </p>
@@ -1469,6 +1472,16 @@ function ReplayReview({ job }: { job: ReplayJob }) {
             </ActionButton>
             <DiscardForm id={job.id} />
           </>
+        )}
+        {job.status !== "processing" && (
+          <ActionButton
+            action="jobs.delete"
+            payload={{ id: job.id }}
+            successMessage="Replay excluído; métricas dos jogadores atualizadas."
+            confirmation={`Excluir este replay permanentemente? As métricas dos jogadores identificados serão recalculadas com os replays aprovados restantes. Quem ficar sem replay aprovado terá a carta e os relatórios derivados removidos.${job.status === "discarded" ? " Este replay já está fora dos cálculos; a ação vai tentar concluir a exclusão." : ""}`}
+          >
+            Excluir replay e recalcular
+          </ActionButton>
         )}
         {["error", "discarded", "awaiting_review"].includes(job.status) && (
           <ActionButton

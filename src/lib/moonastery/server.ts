@@ -309,6 +309,11 @@ export async function handleMoonRequest(request: Request) {
         .from(table)
         .select("*")
         .order(table === "moon_reports" ? "approved_at" : "created_at", { ascending: false });
+      if (table === "moon_jobs")
+        q = db
+          .from("moon_jobs")
+          .select("*,replay:moon_replays(filename)")
+          .order("created_at", { ascending: false });
       if (["moon_partners", "moon_socials"].includes(table))
         q = db.from(table).select("*").order("display_order");
       if (filter) q = q.eq(filter[0], filter[1]);
@@ -721,6 +726,33 @@ export async function handleMoonRequest(request: Request) {
         .eq("id", id)
         .eq("status", row.status),
     );
+  } else if (body.action === "jobs.delete") {
+    allow("owner", "coach");
+    const row = await requireRow(db, "moon_jobs", id);
+    const excluded = await checked<{ player_ids: string[] }>(
+      db.rpc("moon_exclude_job_for_deletion", { actor_id: user.id, target_job_id: id }),
+    );
+    const { recalculatePlayer } = await import("@/lib/gameplay-scouter/recalculate.server");
+    for (const playerId of excluded.player_ids) {
+      try {
+        await recalculatePlayer(db, user.id, playerId);
+      } catch (error) {
+        const reason = error instanceof Error ? ` ${error.message}` : "";
+        throw new ApiError(
+          `O replay foi excluído dos cálculos, mas não foi possível recalcular todos os jogadores.${reason} Tente excluir novamente para continuar.`,
+          409,
+          "REPLAY_RECALCULATION_FAILED",
+        );
+      }
+    }
+    const replay = await checked<{ storage_path: string }>(
+      db.from("moon_replays").select("storage_path").eq("id", row.replay_id).single(),
+    );
+    await checked(db.storage.from("moon-replays").remove([replay.storage_path]));
+    await checked(
+      db.rpc("moon_delete_discarded_job", { actor_id: user.id, target_job_id: id }),
+    );
+    response = { deleted: true, recalculated_players: excluded.player_ids.length };
   } else if (body.action === "jobs.reprocess") {
     allow("owner", "coach");
     const row = await requireRow(db, "moon_jobs", id);

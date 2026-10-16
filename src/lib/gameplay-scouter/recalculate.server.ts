@@ -49,11 +49,20 @@ export async function recalculatePlayer(
     loadPlayerReplayJobs(db, playerId),
     db.from("moon_scoring").select("config").eq("id", "default").maybeSingle(),
   ]);
-  if (settings.error) throw new ApiError("Não foi possível consultar a configuração atual.");
-  if (!jobs.length)
-    throw new ApiError("Este jogador ainda não tem replays analisados para recalcular.");
+  if (settings.error && jobs.some(({ moon_jobs: job }) => job.status === "approved")) {
+    throw new ApiError("Não foi possível consultar a configuração atual.");
+  }
+  if (!jobs.some(({ moon_jobs: job }) => job.status === "approved")) {
+    const { data, error } = await db.rpc("moon_clear_player_metrics", {
+      actor_id: actorId,
+      target_player_id: playerId,
+    });
+    if (error) throw new ApiError("Não foi possível limpar as métricas sem replays aprovados.");
+    return data as { replays: number; reports: number };
+  }
   const expectedConfig = settings.data?.config;
   if (!expectedConfig) throw new ApiError("Configure o baseline antes de recalcular as métricas.");
+  const player = await findReferencePlayer(db, playerId, 2);
   let config = scoringConfigSchema.parse(expectedConfig);
   const provider =
     options.provider ?? new BallchasingProvider(process.env.BALLCHASING_API_TOKEN ?? "");

@@ -54,20 +54,25 @@ export function ActionButton({
   payload,
   children,
   confirmation,
+  successMessage,
 }: {
   action: MoonAction;
   payload: MoonPayload<MoonAction>;
   children: ReactNode;
   confirmation?: string;
+  successMessage?: string;
 }) {
   const cache = useQueryClient();
   const mutation = useMutation({
     mutationFn: () => moonRequest(action, payload),
     onSuccess: () => {
-      toast.success("Alteração salva.");
+      toast.success(successMessage ?? "Alteração salva.");
       void cache.invalidateQueries({ queryKey: ["moon-team"] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message);
+      void cache.invalidateQueries({ queryKey: ["moon-team"] });
+    },
   });
   return (
     <button

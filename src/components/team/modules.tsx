@@ -1483,13 +1483,17 @@ function ReplayReview({ job }: { job: ReplayJob }) {
             Excluir replay e recalcular
           </ActionButton>
         )}
-        {["error", "discarded", "awaiting_review"].includes(job.status) && (
+        {["error", "discarded", "awaiting_review", "approved"].includes(job.status) && (
           <ActionButton
             action="jobs.reprocess"
             payload={{ id: job.id }}
-            confirmation="Reprocessar este replay? A revisão será substituída sem contabilizar a partida novamente."
+            confirmation={
+              job.status === "approved"
+                ? "Reanalisar este mesmo replay com os IDs cadastrados agora? A análise aprovada atual será removida dos cálculos e as cartas antigas serão reconstruídas. A nova análise ficará para revisão antes de atualizar as cartas."
+                : "Reprocessar este replay? A revisão será substituída sem contabilizar a partida novamente."
+            }
           >
-            Reprocessar
+            {job.status === "approved" ? "Reanalisar com IDs atuais" : "Reprocessar"}
           </ActionButton>
         )}
       </div>

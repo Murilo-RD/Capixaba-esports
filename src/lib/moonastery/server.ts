@@ -759,12 +759,35 @@ export async function handleMoonRequest(request: Request) {
     const stale =
       row.status === "processing" &&
       Date.now() - Date.parse(row.updated_at as string) > 5 * 60 * 1000;
-    if (!stale && !["error", "discarded", "awaiting_review"].includes(row.status as string))
+    if (
+      !stale &&
+      !["error", "discarded", "awaiting_review", "approved"].includes(row.status as string)
+    )
       throw new ApiError(
         "Reprocessar exige resultado não aprovado ou processamento parado há mais de cinco minutos.",
         409,
         "JOB_STATE",
       );
+    let expectedStatus = row.status as string;
+    if (["approved", "discarded"].includes(expectedStatus)) {
+      const excluded = await checked<{ player_ids: string[] }>(
+        db.rpc("moon_prepare_job_reprocess", { actor_id: user.id, target_job_id: id }),
+      );
+      const { recalculatePlayer } = await import("@/lib/gameplay-scouter/recalculate.server");
+      for (const playerId of excluded.player_ids) {
+        try {
+          await recalculatePlayer(db, user.id, playerId);
+        } catch (error) {
+          const reason = error instanceof Error ? ` ${error.message}` : "";
+          throw new ApiError(
+            `A análise antiga saiu dos cálculos, mas não foi possível reconstruir todas as cartas anteriores.${reason} Tente reprocessar novamente para continuar.`,
+            409,
+            "REPLAY_RECALCULATION_FAILED",
+          );
+        }
+      }
+      expectedStatus = "discarded";
+    }
     await checked(
       db
         .from("moon_jobs")
@@ -774,7 +797,7 @@ export async function handleMoonRequest(request: Request) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
-        .eq("status", row.status)
+        .eq("status", expectedStatus)
         .eq("attempt", row.attempt),
     );
     const { processReplayJob } = await import("@/lib/gameplay-scouter/pipeline.server");

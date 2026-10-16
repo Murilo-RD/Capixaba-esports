@@ -77,7 +77,7 @@ export const referencePlayerSchema = z
   .object({
     player_id: z.string().uuid(),
     nick: z.string().min(1).max(200),
-    platform: z.enum(["steam", "epic", "ps4"]),
+    platform: z.enum(["steam", "epic", "ps4", "xbox"]),
     platform_id: z.string().min(1).max(200),
     min_samples: z.number().int().min(2).max(100),
   })

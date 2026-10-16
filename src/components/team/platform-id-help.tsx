@@ -14,6 +14,11 @@ const platformGuides = {
     description: "Use sua ID online da PSN, exibida no perfil do console ou no PlayStation App.",
     url: "https://www.playstation.com/pt-br/support/account/change-online-id/",
   },
+  xbox: {
+    label: "Xbox",
+    description: "Use sua Gamertag do Xbox, incluindo o sufixo se ele aparecer no perfil.",
+    url: "https://www.epicgames.com/help/c-45487929/a23102823",
+  },
 } as const;
 
 export function PlatformIdHelp({ platform }: { platform: unknown }) {

@@ -69,7 +69,7 @@ export const actionSchemas = {
       nick: title,
       bio: text,
       photo_url: optionalUrl,
-      platform: z.enum(["steam", "epic", "ps4"]).nullable().optional(),
+      platform: z.enum(["steam", "epic", "ps4", "xbox"]).nullable().optional(),
       platform_id: z.string().trim().min(1).max(128).nullable().optional(),
     })
     .strict()
@@ -85,7 +85,7 @@ export const actionSchemas = {
       nick: title,
       bio: text,
       game_id: id.nullable(),
-      platform: z.enum(["steam", "epic", "ps4"]).nullable(),
+      platform: z.enum(["steam", "epic", "ps4", "xbox"]).nullable(),
       platform_id: z.string().trim().min(1).max(128).nullable(),
       public_visible: z.boolean(),
     })

@@ -146,7 +146,7 @@ export function BaselineSettings({ data }: { data: DashboardData }) {
           <p id="baseline-player-help" className="team-muted">
             {selected
               ? `ID selecionado: ${selected.platform}: ${selected.platform_id}`
-              : "Escolha a conta Steam, Epic Games ou PlayStation cadastrada no perfil."}
+              : "Escolha a conta Steam, Epic Games, PlayStation ou Xbox cadastrada no perfil."}
           </p>
         </div>
         <div className="team-field">

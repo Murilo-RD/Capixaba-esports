@@ -595,6 +595,7 @@ function Profile({ data }: { data: DashboardData }) {
               { value: "steam", label: "Steam" },
               { value: "epic", label: "Epic Games" },
               { value: "ps4", label: "PlayStation" },
+              { value: "xbox", label: "Xbox" },
             ],
           },
           {
@@ -807,7 +808,7 @@ function Players({ data }: { data: DashboardData }) {
   return (
     <Panel
       title="Cartinhas da equipe e arquétipos"
-      description="Identifique as contas Steam ou Epic usadas nos replays. O nick sozinho não identifica um participante com segurança."
+      description="Identifique as contas Steam, Epic, PlayStation ou Xbox usadas nos replays. O nick sozinho não identifica um participante com segurança."
     >
       {!data.players.length && (
         <Empty>
@@ -879,6 +880,7 @@ function Players({ data }: { data: DashboardData }) {
                         { value: "steam", label: "Steam" },
                         { value: "epic", label: "Epic Games" },
                         { value: "ps4", label: "PlayStation (PS4)" },
+                        { value: "xbox", label: "Xbox" },
                       ],
                     },
                     {

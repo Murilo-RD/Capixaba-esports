@@ -43,7 +43,7 @@ export interface PublicPlayer {
 }
 export interface Player extends PublicPlayer {
   user_id: string;
-  platform: "steam" | "epic" | "ps4" | null;
+  platform: "steam" | "epic" | "ps4" | "xbox" | null;
   platform_id: string | null;
   public_visible: boolean;
 }

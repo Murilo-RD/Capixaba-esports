@@ -30,7 +30,7 @@ export interface PlayerCard {
 }
 export interface PublicPlayer {
   id: string;
-  role: "player" | "coach";
+  role: "player" | "coach" | "owner";
   user_id?: string;
   nick: string;
   photo_url: string | null;

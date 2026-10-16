@@ -130,7 +130,7 @@ export async function loadPlayers(
       .from("moon_memberships")
       .select("id,role")
       .eq("status", "approved")
-      .in("role", ["player", "coach"]),
+      .in("role", ["player", "coach", "owner"]),
   );
   if (!members.length) return [];
   let query = db
@@ -437,8 +437,12 @@ export async function handleMoonRequest(request: Request) {
     allow("owner", "coach");
     const target = await requireRow(db, "moon_players", id);
     const member = await requireRow(db, "moon_memberships", target.user_id as string);
-    if (member.role === "coach")
-      throw new ApiError("O arquétipo de um coach é sempre Coach.", 400, "FIXED_ARCHETYPE");
+    if (member.role === "coach" || member.role === "owner")
+      throw new ApiError(
+        "O arquétipo de coaches e donos é definido pela função na equipe.",
+        400,
+        "FIXED_ARCHETYPE",
+      );
     await checked(
       db.rpc("moon_change_archetype", {
         actor_id: user.id,
@@ -460,7 +464,7 @@ export async function handleMoonRequest(request: Request) {
         .from("moon_memberships")
         .select("id")
         .eq("id", target.user_id as string)
-        .in("role", ["player", "coach"])
+        .in("role", ["player", "coach", "owner"])
         .eq("status", "approved")
         .maybeSingle(),
     );

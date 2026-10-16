@@ -22,6 +22,10 @@ function fixtureDb() {
     { id: "suspended", role: "coach", status: "suspended" },
     { id: "editor", role: "editor", status: "approved" },
     { id: "owner", role: "owner", status: "approved" },
+    { id: "hidden-owner", role: "owner", status: "approved" },
+    { id: "pending-owner", role: "owner", status: "pending" },
+    { id: "rejected-owner", role: "owner", status: "rejected" },
+    { id: "suspended-owner", role: "owner", status: "suspended" },
   ];
   const rows: Record<string, Record<string, unknown>[]> = {
     moon_memberships: members,
@@ -35,7 +39,7 @@ function fixtureDb() {
       archetype_id: archetype.id,
       platform: "steam",
       platform_id: `private-${member.id}`,
-      public_visible: member.id !== "hidden",
+      public_visible: !member.id.startsWith("hidden"),
     })),
     moon_archetypes: [archetype],
     moon_cards: [{ player_id: "profile-athlete", overall: 85, attributes: { IMP: 85 } }],
@@ -68,17 +72,21 @@ function fixtureDb() {
   });
 }
 
-test("public cards include approved visible coaches without leaking account identifiers", async () => {
+test("public cards include approved visible coaches and owners without leaking account identifiers", async () => {
   const players = await loadPlayers(fixtureDb(), true);
   assert.deepEqual(
     players.map((player) => player.nick),
-    ["athlete", "trainer"],
+    ["athlete", "owner", "trainer"],
   );
   const coach = players.find((player) => player.role === "coach")!;
   assert(coach);
   assert.equal(coach.card, null);
   assert.equal(coach.ranking_position, null);
   assert.equal(playerArchetypeLabel(coach), "Coach");
+  const owner = players.find((player) => player.role === "owner")!;
+  assert(owner);
+  assert.equal(owner.card, null);
+  assert.equal(playerArchetypeLabel(owner), "Dono");
   assert.equal(playerArchetypeLabel(players[0]), "Finalizador");
   for (const player of players) {
     for (const key of ["user_id", "platform", "platform_id", "email"])
@@ -86,14 +94,14 @@ test("public cards include approved visible coaches without leaking account iden
   }
 });
 
-test("internal cards include coaches and preserve account visibility restrictions", async () => {
+test("internal cards include coaches and owners and preserve account visibility restrictions", async () => {
   const players = (await loadPlayers(fixtureDb(), false, {
     staff: false,
     userId: "athlete",
   })) as Player[];
   assert.deepEqual(
     new Set(players.map((player) => player.nick)),
-    new Set(["athlete", "trainer", "hidden"]),
+    new Set(["athlete", "trainer", "hidden", "owner", "hidden-owner"]),
   );
   assert.equal(
     players.find((player) => player.user_id === "athlete")?.platform_id,
@@ -110,8 +118,10 @@ test("internal cards include coaches and preserve account visibility restriction
   );
 });
 
-test("Coach label overrides a previous player archetype and handles missing archetypes", () => {
+test("staff labels override a previous player archetype and handle missing archetypes", () => {
   assert.equal(playerArchetypeLabel({ role: "coach", archetype }), "Coach");
   assert.equal(playerArchetypeLabel({ role: "coach", archetype: null }), "Coach");
+  assert.equal(playerArchetypeLabel({ role: "owner", archetype }), "Dono");
+  assert.equal(playerArchetypeLabel({ role: "owner", archetype: null }), "Dono");
   assert.equal(playerArchetypeLabel({ role: "player", archetype: null }), "Arquétipo não definido");
 });

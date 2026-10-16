@@ -637,7 +637,8 @@
 .moon-roster-photo {
   width: 100%;
   height: 290px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   grid-column: 1/-1;
   display: grid;
   place-items: center;
@@ -751,8 +752,8 @@
   height: 200px;
   display: grid;
   place-items: center;
-  object-fit: cover;
-  object-position: top center;
+  object-fit: contain;
+  object-position: center;
   margin-top: 8px;
   color: #687084;
 }
@@ -771,6 +772,29 @@
   color: #00b5f5;
   font-size: 12px;
   margin-top: 5px;
+}
+.moon-card-role svg {
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 6px;
+}
+.moon-player-card[data-role="owner"] {
+  background: linear-gradient(155deg, #2c261a, #101116 50%, #211c16);
+  border-color: #f3c66a;
+  box-shadow: inset -1px -1px #8d713c;
+}
+.moon-player-trigger[data-role="owner"] {
+  border-color: #8d713c;
+}
+.moon-player-trigger[data-role="owner"]:hover {
+  border-color: #f3c66a;
+}
+.moon-player-card[data-role="owner"] .moon-card-role,
+.moon-player-trigger[data-role="owner"] .moon-card-role {
+  color: #f3c66a;
+}
+.moon-player-trigger[data-role="owner"] .moon-roster-position {
+  border-left-color: #f3c66a;
 }
 .moon-card-attributes {
   display: grid;

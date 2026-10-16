@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowDownRight, ArrowUpRight, Minus, UserRound, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Crown, Minus, UserRound, X } from "lucide-react";
 import type { Attribute, PublicPlayer } from "@/lib/moonastery/types";
 import { playerArchetypeLabel } from "@/lib/moonastery/player-card";
 import logo from "@/assets/moonastery-logo.png";
@@ -34,7 +34,11 @@ export function PlayerEvolution({ value }: { value: number | null | undefined })
 
 export function PlayerCard({ player, children }: { player: PublicPlayer; children?: ReactNode }) {
   return (
-    <article className="moon-player-card" aria-label={`Carta de ${player.nick}`}>
+    <article
+      className="moon-player-card"
+      data-role={player.role}
+      aria-label={`Carta de ${player.nick}`}
+    >
       <div className="moon-card-top">
         <div>
           <span className="moon-overall">
@@ -55,7 +59,10 @@ export function PlayerCard({ player, children }: { player: PublicPlayer; childre
       />
       <div className="moon-card-identity">
         <h3>{player.nick}</h3>
-        <p>{playerArchetypeLabel(player)}</p>
+        <p className="moon-card-role">
+          {player.role === "owner" && <Crown size={15} aria-hidden="true" />}
+          {playerArchetypeLabel(player)}
+        </p>
       </div>
       <dl className="moon-card-attributes">
         {attributes.map(([attribute, label]) => (
@@ -94,6 +101,7 @@ export function PublicPlayerDetails({ player }: { player: PublicPlayer }) {
       <Dialog.Trigger asChild>
         <button
           className="moon-player-trigger"
+          data-role={player.role}
           type="button"
           aria-label={`Ver carta e perfil de ${player.nick}`}
         >
@@ -111,7 +119,10 @@ export function PublicPlayerDetails({ player }: { player: PublicPlayer }) {
           </span>
           <span className="moon-roster-info">
             <span className="moon-roster-nick">{player.nick}</span>
-            <span>{playerArchetypeLabel(player)}</span>
+            <span className="moon-card-role">
+              {player.role === "owner" && <Crown size={15} aria-hidden="true" />}
+              {playerArchetypeLabel(player)}
+            </span>
           </span>
           <span className="moon-roster-overall">
             {player.card?.overall == null ? "—" : number.format(player.card.overall)}
@@ -130,8 +141,7 @@ export function PublicPlayerDetails({ player }: { player: PublicPlayer }) {
           </Dialog.Close>
           <Dialog.Title className="moon-modal-title">{player.nick}</Dialog.Title>
           <Dialog.Description className="moon-modal-description">
-            Carta e perfil público {player.role === "coach" ? "do coach" : "do jogador"} da
-            Moonastery.
+            Carta e perfil público de um integrante da Moonastery.
           </Dialog.Description>
           <PlayerCard player={player} />
           {player.bio ? <p className="moon-player-bio">{player.bio}</p> : null}

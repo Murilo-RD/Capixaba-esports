@@ -803,11 +803,13 @@ function Users({ data }: { data: DashboardData }) {
 function Players({ data }: { data: DashboardData }) {
   return (
     <Panel
-      title="Jogadores, coaches e arquétipos"
+      title="Cartinhas da equipe e arquétipos"
       description="Identifique as contas Steam ou Epic usadas nos replays. O nick sozinho não identifica um participante com segurança."
     >
       {!data.players.length && (
-        <Empty>As cartinhas aparecerão quando contas forem aprovadas como jogador ou coach.</Empty>
+        <Empty>
+          As cartinhas aparecerão quando contas forem aprovadas como jogador, coach ou dono.
+        </Empty>
       )}
       {data.players.map((player) => (
         <article className="team-list-item" key={player.id}>
@@ -815,8 +817,8 @@ function Players({ data }: { data: DashboardData }) {
           <div className="team-player-admin">
             <PlayerCard player={player} />
             <div>
-              {player.role === "coach" ? (
-                <p>Arquétipo: Coach</p>
+              {player.role === "coach" || player.role === "owner" ? (
+                <p>Arquétipo: {playerArchetypeLabel(player)}</p>
               ) : (
                 <EditorForm
                   action="players.archetype"

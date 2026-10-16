@@ -1511,6 +1511,7 @@ function JobDetails({ job }: { job: ReplayJob }) {
         };
         players: {
           player_id: string;
+          player: { nick: string } | null;
           attributes: Record<string, number | null>;
           raw_metrics: Record<string, number | null>;
           confidence: unknown;
@@ -1539,7 +1540,8 @@ function JobDetails({ job }: { job: ReplayJob }) {
       {query.data?.players.length ? (
         query.data.players.map((player) => (
           <div key={player.player_id}>
-            <h4>Participante {player.player_id}</h4>
+            <h4>{player.player?.nick || "Participante identificado"}</h4>
+            <p className="team-muted">ID do jogador: {player.player_id}</p>
             <div className="team-table-wrap">
               <table>
                 <thead>

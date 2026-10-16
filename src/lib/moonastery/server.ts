@@ -682,7 +682,9 @@ export async function handleMoonRequest(request: Request) {
     allow("owner", "coach");
     return {
       job: await requireRow(db, "moon_jobs", id),
-      players: await checked(db.from("moon_job_players").select("*").eq("job_id", id)),
+      players: await checked(
+        db.from("moon_job_players").select("*,player:moon_players(nick)").eq("job_id", id),
+      ),
     };
   } else if (body.action === "jobs.process") {
     allow("owner", "coach");

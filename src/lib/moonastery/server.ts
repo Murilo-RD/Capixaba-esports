@@ -125,13 +125,17 @@ export async function loadPlayers(
   publicOnly = false,
   access?: { staff: boolean; userId: string },
 ): Promise<Player[] | PublicPlayer[]> {
-  const members = await checked<{ id: string }[]>(
-    db.from("moon_memberships").select("id").eq("status", "approved").eq("role", "player"),
+  const members = await checked<{ id: string; role: Player["role"] }[]>(
+    db
+      .from("moon_memberships")
+      .select("id,role")
+      .eq("status", "approved")
+      .in("role", ["player", "coach"]),
   );
   if (!members.length) return [];
   let query = db
     .from("moon_players")
-    .select(publicOnly ? publicPlayerColumns : "*")
+    .select(publicOnly ? `${publicPlayerColumns},user_id` : "*")
     .in(
       "user_id",
       members.map((m) => m.id),
@@ -142,8 +146,10 @@ export async function loadPlayers(
     checked<Archetype[]>(db.from("moon_archetypes").select("*")),
     checked<(PlayerCard & { player_id: string })[]>(db.from("moon_cards").select("*")),
   ]);
+  const memberRoles = new Map(members.map((member) => [member.id, member.role]));
   const enriched = rows.map((p) => ({
     ...p,
+    role: memberRoles.get(p.user_id)!,
     archetype: archetypes.find((a) => a.id === p.archetype_id) || null,
     card: cards.find((c) => c.player_id === p.id) || null,
     ranking_position: null as number | null,
@@ -159,13 +165,20 @@ export async function loadPlayers(
           : 0) ||
       a.id.localeCompare(b.id),
   );
-  return enriched.map((p, i) => ({
-    ...p,
-    ...(access && !access.staff && p.user_id !== access.userId
-      ? { platform: null, platform_id: null }
-      : {}),
-    ranking_position: p.card?.overall == null ? null : i + 1,
-  }));
+  return enriched.map((p, i) => {
+    const player = {
+      ...p,
+      ...(access && !access.staff && p.user_id !== access.userId
+        ? { platform: null, platform_id: null }
+        : {}),
+      ranking_position: p.card?.overall == null ? null : i + 1,
+    };
+    if (publicOnly) {
+      const { user_id: _, ...publicPlayer } = player;
+      return publicPlayer;
+    }
+    return player;
+  });
 }
 export async function loadPublicHome(): Promise<PublicHome> {
   const db = createServerClient();
@@ -422,6 +435,10 @@ export async function handleMoonRequest(request: Request) {
     await checked(db.from("moon_players").update(fields).eq("id", id));
   } else if (body.action === "players.archetype") {
     allow("owner", "coach");
+    const target = await requireRow(db, "moon_players", id);
+    const member = await requireRow(db, "moon_memberships", target.user_id as string);
+    if (member.role === "coach")
+      throw new ApiError("O arquétipo de um coach é sempre Coach.", 400, "FIXED_ARCHETYPE");
     await checked(
       db.rpc("moon_change_archetype", {
         actor_id: user.id,
@@ -443,7 +460,7 @@ export async function handleMoonRequest(request: Request) {
         .from("moon_memberships")
         .select("id")
         .eq("id", target.user_id as string)
-        .eq("role", "player")
+        .in("role", ["player", "coach"])
         .eq("status", "approved")
         .maybeSingle(),
     );

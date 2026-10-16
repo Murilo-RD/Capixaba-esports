@@ -155,7 +155,7 @@ function HomeSections({ data }: { data: PublicHome }) {
       <section id="equipe" className="moon-section moon-container">
         <SectionHeading
           title="Nossa equipe"
-          description="Conheça os jogadores que levam a identidade Moonastery para dentro de jogo."
+          description="Conheça os jogadores e coaches que levam a identidade Moonastery para dentro de jogo."
         />
         {data.players.length ? (
           <>
@@ -165,13 +165,13 @@ function HomeSections({ data }: { data: PublicHome }) {
               ))}
             </div>
             <p className="moon-section-note">
-              Classificação pelo overall da última avaliação aprovada. Jogadores sem avaliação
+              Classificação pelo overall da última avaliação aprovada. Integrantes sem avaliação
               aparecem sem nota.
             </p>
           </>
         ) : (
           <PublicEmptyState title="A equipe está ganhando forma">
-            Os perfis dos jogadores serão apresentados aqui assim que forem publicados.
+            Os perfis dos jogadores e coaches serão apresentados aqui assim que forem publicados.
           </PublicEmptyState>
         )}
       </section>

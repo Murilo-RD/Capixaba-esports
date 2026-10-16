@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowDownRight, ArrowUpRight, Minus, UserRound, X } from "lucide-react";
 import type { Attribute, PublicPlayer } from "@/lib/moonastery/types";
+import { playerArchetypeLabel } from "@/lib/moonastery/player-card";
 import logo from "@/assets/moonastery-logo.png";
 import { PublicImage } from "./media";
 import { formatPublicDate } from "./dates";
@@ -54,7 +55,7 @@ export function PlayerCard({ player, children }: { player: PublicPlayer; childre
       />
       <div className="moon-card-identity">
         <h3>{player.nick}</h3>
-        <p>{player.archetype?.name || "Arquétipo não definido"}</p>
+        <p>{playerArchetypeLabel(player)}</p>
       </div>
       <dl className="moon-card-attributes">
         {attributes.map(([attribute, label]) => (
@@ -110,7 +111,7 @@ export function PublicPlayerDetails({ player }: { player: PublicPlayer }) {
           </span>
           <span className="moon-roster-info">
             <span className="moon-roster-nick">{player.nick}</span>
-            <span>{player.archetype?.name || "Arquétipo não definido"}</span>
+            <span>{playerArchetypeLabel(player)}</span>
           </span>
           <span className="moon-roster-overall">
             {player.card?.overall == null ? "—" : number.format(player.card.overall)}
@@ -129,14 +130,15 @@ export function PublicPlayerDetails({ player }: { player: PublicPlayer }) {
           </Dialog.Close>
           <Dialog.Title className="moon-modal-title">{player.nick}</Dialog.Title>
           <Dialog.Description className="moon-modal-description">
-            Carta e perfil público do jogador da Moonastery.
+            Carta e perfil público {player.role === "coach" ? "do coach" : "do jogador"} da
+            Moonastery.
           </Dialog.Description>
           <PlayerCard player={player} />
           {player.bio ? <p className="moon-player-bio">{player.bio}</p> : null}
           <p className="moon-card-note">
             {player.card
               ? `Última avaliação aprovada em ${formatPublicDate(player.card.approved_at)}.`
-              : "Este jogador ainda não possui uma avaliação aprovada."}{" "}
+              : "Este integrante ainda não possui uma avaliação aprovada."}{" "}
             Atributos sem dados aparecem com um traço.
           </p>
         </Dialog.Content>

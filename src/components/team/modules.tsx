@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { moonRequest } from "@/lib/moonastery/client";
+import { playerArchetypeLabel } from "@/lib/moonastery/player-card";
 import type {
   Archetype,
   DashboardData,
@@ -272,7 +273,7 @@ function Ranking({ data }: { data: DashboardData }) {
                 <tr key={player.id}>
                   <td>{player.ranking_position ?? "—"}</td>
                   <td>{player.nick}</td>
-                  <td>{player.archetype?.name ?? "Não definido"}</td>
+                  <td>{playerArchetypeLabel(player)}</td>
                   <td>{player.card?.overall?.toFixed(2) ?? "Sem avaliação"}</td>
                   <td>
                     {player.card?.evolution == null
@@ -801,13 +802,11 @@ function Users({ data }: { data: DashboardData }) {
 function Players({ data }: { data: DashboardData }) {
   return (
     <Panel
-      title="Jogadores e arquétipos"
+      title="Jogadores, coaches e arquétipos"
       description="Identifique as contas Steam ou Epic usadas nos replays. O nick sozinho não identifica um participante com segurança."
     >
       {!data.players.length && (
-        <Empty>
-          Jogadores serão cadastrados quando contas forem aprovadas para a função player.
-        </Empty>
+        <Empty>As cartinhas aparecerão quando contas forem aprovadas como jogador ou coach.</Empty>
       )}
       {data.players.map((player) => (
         <article className="team-list-item" key={player.id}>
@@ -815,25 +814,29 @@ function Players({ data }: { data: DashboardData }) {
           <div className="team-player-admin">
             <PlayerCard player={player} />
             <div>
-              <EditorForm
-                action="players.archetype"
-                initial={{
-                  id: player.id,
-                  archetype_id: player.archetype_id ?? data.archetypes[0]?.id ?? "",
-                }}
-                fields={[
-                  {
-                    name: "archetype_id",
-                    label: "Arquétipo",
-                    type: "select",
-                    required: true,
-                    options: data.archetypes
-                      .filter((item) => item.active)
-                      .map((item) => ({ value: item.id, label: item.name })),
-                  },
-                ]}
-                submitLabel="Alterar arquétipo e recalcular overall"
-              />
+              {player.role === "coach" ? (
+                <p>Arquétipo: Coach</p>
+              ) : (
+                <EditorForm
+                  action="players.archetype"
+                  initial={{
+                    id: player.id,
+                    archetype_id: player.archetype_id ?? data.archetypes[0]?.id ?? "",
+                  }}
+                  fields={[
+                    {
+                      name: "archetype_id",
+                      label: "Arquétipo",
+                      type: "select",
+                      required: true,
+                      options: data.archetypes
+                        .filter((item) => item.active)
+                        .map((item) => ({ value: item.id, label: item.name })),
+                    },
+                  ]}
+                  submitLabel="Alterar arquétipo e recalcular overall"
+                />
+              )}
               <details>
                 <summary>Conta do jogo e informações públicas</summary>
                 <EditorForm

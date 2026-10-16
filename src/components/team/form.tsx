@@ -23,7 +23,7 @@ export type Field = {
   options?: { value: string; label: string }[];
   required?: boolean;
   nullable?: boolean;
-  help?: string;
+  help?: ReactNode | ((values: Record<string, FormValue>) => ReactNode);
   purpose?: "avatar" | "content";
 };
 
@@ -183,6 +183,7 @@ export function EditorForm({
       {fields.map((field) => {
         const id = `${prefix}-${field.name}`;
         const value = values[field.name];
+        const help = typeof field.help === "function" ? field.help(values) : field.help;
         return (
           <div className="team-field" key={field.name}>
             {field.type === "media" ? (
@@ -317,6 +318,7 @@ export function EditorForm({
               <input
                 id={id}
                 type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+                aria-describedby={help ? `${id}-help` : undefined}
                 min={field.type === "number" ? 0 : undefined}
                 required={field.required}
                 value={String(value ?? "")}
@@ -328,7 +330,11 @@ export function EditorForm({
                 }
               />
             )}
-            {field.help && <p className="team-muted">{field.help}</p>}
+            {help && (
+              <p id={`${id}-help`} className="team-muted">
+                {help}
+              </p>
+            )}
           </div>
         );
       })}

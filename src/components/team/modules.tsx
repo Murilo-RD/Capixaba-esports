@@ -15,6 +15,7 @@ import type {
   Role,
 } from "@/lib/moonastery/types";
 import { PlayerCard } from "@/components/moonastery-public/player-card";
+import { PlatformIdHelp } from "./platform-id-help";
 import { ActionButton, EditorForm, Empty, Panel, type Field, type FormValue } from "./form";
 import type { TeamModule } from "./permissions";
 
@@ -597,7 +598,7 @@ function Profile({ data }: { data: DashboardData }) {
             name: "platform_id",
             label: "Seu ID na plataforma",
             nullable: true,
-            help: "Use o mesmo ID de jogador que aparece nos replays. Informe a plataforma e o ID juntos.",
+            help: (values) => <PlatformIdHelp platform={values.platform} />,
           },
         ]}
       />
@@ -871,7 +872,12 @@ function Players({ data }: { data: DashboardData }) {
                         { value: "ps4", label: "PlayStation (PS4)" },
                       ],
                     },
-                    { name: "platform_id", label: "ID da conta na plataforma", nullable: true },
+                    {
+                      name: "platform_id",
+                      label: "ID da conta na plataforma",
+                      nullable: true,
+                      help: (values) => <PlatformIdHelp platform={values.platform} />,
+                    },
                     { name: "public_visible", label: "Exibir no site público", type: "checkbox" },
                   ]}
                 />

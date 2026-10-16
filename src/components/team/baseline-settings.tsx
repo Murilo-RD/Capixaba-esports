@@ -10,6 +10,10 @@ import type { DashboardData } from "@/lib/moonastery/types";
 export function BaselineSettings({ data }: { data: DashboardData }) {
   const config = scoringConfigSchema.safeParse(data.scoring);
   const saved = config.success ? config.data.reference_player : null;
+  const genericActive =
+    config.success &&
+    (config.data.baseline?.cohort === "GENERIC" ||
+      config.data.baselines?.some((entry) => entry.cohort === "GENERIC"));
   const [playerId, setPlayerId] = useState(saved?.player_id ?? "");
   const [minSamples, setMinSamples] = useState(saved?.min_samples ?? 5);
   const cache = useQueryClient();
@@ -53,6 +57,16 @@ export function BaselineSettings({ data }: { data: DashboardData }) {
       void cache.invalidateQueries({ queryKey: ["moon-team"] });
     },
   });
+  const generic = useMutation({
+    mutationFn: (enabled: boolean) =>
+      moonRequest(enabled ? "scoring.generic.enable" : "scoring.generic.disable"),
+    onSuccess: (_, enabled) => {
+      toast.success(
+        enabled ? "Parâmetro genérico temporário ativado." : "Parâmetro genérico desativado.",
+      );
+      void cache.invalidateQueries({ queryKey: ["moon-team"] });
+    },
+  });
   const modeIds = [
     ...new Set([
       ...PLAYLISTS.map(([id]) => id),
@@ -61,6 +75,45 @@ export function BaselineSettings({ data }: { data: DashboardData }) {
   ];
   return (
     <div>
+      <div className="team-list-item">
+        <h3>Parâmetro genérico temporário</h3>
+        <p className="team-muted">
+          Uma referência provisória para todos os modos enquanto você reúne replays. Os valores são
+          parâmetros iniciais, sem amostras coletadas e sem classificação SSL. Referências medidas
+          por modo têm prioridade quando disponíveis.
+        </p>
+        <p role="status">
+          {genericActive
+            ? "Parâmetro genérico ativo nos modos sem referência medida."
+            : "Parâmetro genérico desativado."}
+        </p>
+        <div className="team-actions">
+          <button
+            type="button"
+            className="team-button team-button-secondary"
+            disabled={generic.isPending || save.isPending || clear.isPending}
+            onClick={() => generic.mutate(!genericActive)}
+          >
+            {generic.isPending
+              ? "Salvando…"
+              : genericActive
+                ? "Desativar parâmetro genérico"
+                : "Usar parâmetro genérico em todos os modos"}
+          </button>
+          <a
+            className="team-text-button"
+            href="/config/gameplay-scouter-generic-all-modes.json"
+            download
+          >
+            Baixar configuração genérica (JSON)
+          </a>
+        </div>
+        {generic.error && (
+          <p className="team-error" role="alert">
+            {generic.error.message}
+          </p>
+        )}
+      </div>
       <p className="team-muted">
         {saved
           ? `Referência atual: ${saved.nick} (${saved.platform}: ${saved.platform_id}).`
@@ -191,7 +244,7 @@ export function BaselineSettings({ data }: { data: DashboardData }) {
           <button
             className="team-button"
             type="submit"
-            disabled={!valid || save.isPending || clear.isPending}
+            disabled={!valid || save.isPending || clear.isPending || generic.isPending}
           >
             {save.isPending ? "Salvando…" : "Usar este jogador em todos os modos"}
           </button>
@@ -199,7 +252,7 @@ export function BaselineSettings({ data }: { data: DashboardData }) {
             <button
               className="team-button team-button-secondary"
               type="button"
-              disabled={save.isPending || clear.isPending}
+              disabled={save.isPending || clear.isPending || generic.isPending}
               onClick={() => clear.mutate()}
             >
               Desativar referência por jogador

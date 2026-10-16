@@ -603,6 +603,30 @@ export async function handleMoonRequest(request: Request) {
   } else if (body.action === "organization.save") {
     allow("owner");
     await checked(db.from("moon_organization").upsert({ ...data, id: "default" }));
+  } else if (
+    body.action === "scoring.generic.enable" ||
+    body.action === "scoring.generic.disable"
+  ) {
+    allow("owner");
+    const { scoringConfigSchema, DEFAULT_SCORING_SETTINGS } =
+      await import("@/lib/gameplay-scouter/config");
+    const { withGenericBaseline, withoutGenericBaseline } =
+      await import("@/lib/gameplay-scouter/generic-baseline");
+    const saved = await checked<{ config: unknown } | null>(
+      db.from("moon_scoring").select("config").eq("id", "default").maybeSingle(),
+    );
+    const current = scoringConfigSchema.parse(saved?.config ?? DEFAULT_SCORING_SETTINGS);
+    const config =
+      body.action === "scoring.generic.enable"
+        ? withGenericBaseline(current)
+        : withoutGenericBaseline(current);
+    await checked(
+      db.from("moon_scoring").upsert({
+        id: "default",
+        config: scoringConfigSchema.parse(config),
+        updated_at: new Date().toISOString(),
+      }),
+    );
   } else if (body.action.startsWith("scoring.reference.")) {
     allow("owner");
     const { scoringConfigSchema, DEFAULT_SCORING_SETTINGS } =

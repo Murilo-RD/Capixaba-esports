@@ -1,0 +1,246 @@
+{
+  "version": "moonastery-zscore-v1",
+  "baseline": {
+    "version": "generic-temporary-all-modes-v1",
+    "source": "Parâmetros hipotéticos provisórios para todos os modos. Centros e escalas definidos como política inicial; não são médias/desvios medidos, não representam SSL e não têm replays coletados (samples=0).",
+    "cohort": "GENERIC",
+    "playlist": "*",
+    "min_samples": 0,
+    "metrics": {
+      "movement.avg_speed": {
+        "mean": 1400,
+        "stddev": 300,
+        "samples": 0
+      },
+      "movement.percent_supersonic_speed": {
+        "mean": 15,
+        "stddev": 10,
+        "samples": 0
+      },
+      "movement.avg_powerslide_duration": {
+        "mean": 0.25,
+        "stddev": 0.15,
+        "samples": 0
+      },
+      "derived.shooting_conversion": {
+        "mean": 30,
+        "stddev": 20,
+        "samples": 0
+      },
+      "derived.goals_per_minute": {
+        "mean": 0.3,
+        "stddev": 0.4,
+        "samples": 0
+      },
+      "derived.assists_per_minute": {
+        "mean": 0.2,
+        "stddev": 0.3,
+        "samples": 0
+      },
+      "derived.demos_per_minute": {
+        "mean": 0.2,
+        "stddev": 0.3,
+        "samples": 0
+      },
+      "positioning.percent_offensive_half": {
+        "mean": 45,
+        "stddev": 20,
+        "samples": 0
+      },
+      "derived.saves_per_minute": {
+        "mean": 0.4,
+        "stddev": 0.5,
+        "samples": 0
+      },
+      "derived.last_defender_conceded_per_minute": {
+        "mean": 0.2,
+        "stddev": 0.3,
+        "samples": 0
+      },
+      "positioning.percent_behind_ball": {
+        "mean": 60,
+        "stddev": 25,
+        "samples": 0
+      },
+      "positioning.avg_distance_to_mates": {
+        "mean": 3000,
+        "stddev": 1600,
+        "samples": 0
+      },
+      "positioning.avg_distance_to_ball": {
+        "mean": 2200,
+        "stddev": 1200,
+        "samples": 0
+      },
+      "derived.stolen_boost_per_minute": {
+        "mean": 80,
+        "stddev": 70,
+        "samples": 0
+      },
+      "derived.small_pads_per_minute": {
+        "mean": 3.5,
+        "stddev": 3,
+        "samples": 0
+      },
+      "derived.overfill_per_minute": {
+        "mean": 90,
+        "stddev": 100,
+        "samples": 0
+      }
+    }
+  },
+  "baselines": [],
+  "attributes": {
+    "VEL": {
+      "metrics": [
+        {
+          "metric": "movement.avg_speed",
+          "weight": 0.5,
+          "direction": "higher"
+        },
+        {
+          "metric": "movement.percent_supersonic_speed",
+          "weight": 0.3,
+          "direction": "higher"
+        },
+        {
+          "metric": "movement.avg_powerslide_duration",
+          "weight": 0.2,
+          "direction": "target"
+        }
+      ],
+      "minimum_coverage": 0.75
+    },
+    "FIN": {
+      "metrics": [
+        {
+          "metric": "derived.shooting_conversion",
+          "weight": 0.6,
+          "direction": "higher"
+        },
+        {
+          "metric": "derived.goals_per_minute",
+          "weight": 0.4,
+          "direction": "higher"
+        }
+      ],
+      "minimum_coverage": 0.75
+    },
+    "CRI": {
+      "metrics": [
+        {
+          "metric": "derived.assists_per_minute",
+          "weight": 0.5,
+          "direction": "higher"
+        },
+        {
+          "metric": "derived.demos_per_minute",
+          "weight": 0.25,
+          "direction": "higher"
+        },
+        {
+          "metric": "positioning.percent_offensive_half",
+          "weight": 0.25,
+          "direction": "higher"
+        }
+      ],
+      "minimum_coverage": 0.75
+    },
+    "DEF": {
+      "metrics": [
+        {
+          "metric": "derived.saves_per_minute",
+          "weight": 0.5,
+          "direction": "higher"
+        },
+        {
+          "metric": "derived.last_defender_conceded_per_minute",
+          "weight": 0.25,
+          "direction": "lower"
+        },
+        {
+          "metric": "positioning.percent_behind_ball",
+          "weight": 0.25,
+          "direction": "target"
+        }
+      ],
+      "minimum_coverage": 0.75
+    },
+    "POS": {
+      "metrics": [
+        {
+          "metric": "positioning.avg_distance_to_mates",
+          "weight": 0.5,
+          "direction": "target"
+        },
+        {
+          "metric": "positioning.percent_behind_ball",
+          "weight": 0.5,
+          "direction": "target"
+        }
+      ],
+      "minimum_coverage": 0.75
+    },
+    "BST": {
+      "metrics": [
+        {
+          "metric": "derived.stolen_boost_per_minute",
+          "weight": 0.3,
+          "direction": "higher"
+        },
+        {
+          "metric": "derived.small_pads_per_minute",
+          "weight": 0.3,
+          "direction": "higher"
+        },
+        {
+          "metric": "derived.overfill_per_minute",
+          "weight": 0.4,
+          "direction": "lower"
+        }
+      ],
+      "minimum_coverage": 0.75
+    },
+    "IMP": {
+      "metrics": [
+        {
+          "metric": "derived.goals_per_minute",
+          "weight": 0.4,
+          "direction": "higher"
+        },
+        {
+          "metric": "derived.assists_per_minute",
+          "weight": 0.3,
+          "direction": "higher"
+        },
+        {
+          "metric": "derived.saves_per_minute",
+          "weight": 0.3,
+          "direction": "higher"
+        }
+      ],
+      "minimum_coverage": 0.75
+    }
+  },
+  "scale": {
+    "center": 70,
+    "points_per_z": 10,
+    "z_clip": 3
+  },
+  "reliability": {
+    "min_duration_seconds": 120,
+    "min_player_duration_seconds": 120,
+    "minimum_overall_coverage": 1
+  },
+  "evolution": {
+    "smoothing": 0.2,
+    "maximum_nightly_increase": 1
+  },
+  "opponent": {
+    "reference_strength": 22,
+    "minimum_multiplier": 0.75,
+    "maximum_multiplier": 1.1,
+    "max_evidence_age_days": 30,
+    "evidence": []
+  }
+}

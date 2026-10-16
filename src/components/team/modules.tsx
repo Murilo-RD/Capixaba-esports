@@ -1531,7 +1531,7 @@ function JobDetails({ job }: { job: ReplayJob }) {
     <>
       <p className="team-muted" role="status">
         {baseline
-          ? `${baseline.cohort === "PLAYER" ? "Referência individual" : "Baseline SSL"} aplicada nesta análise: ${baseline.version ?? "sem versão"} · ${baseline.playlist ?? "modalidade desconhecida"} · ${Object.keys(baseline.metrics ?? {}).length} métricas.`
+          ? `${baseline.cohort === "GENERIC" ? "Referência genérica provisória" : baseline.cohort === "PLAYER" ? "Referência individual" : "Baseline SSL"} aplicada nesta análise: ${baseline.version ?? "sem versão"} · ${baseline.playlist === "*" ? "todos os modos" : (baseline.playlist ?? "modalidade desconhecida")} · ${Object.keys(baseline.metrics ?? {}).length} métricas.`
           : query.data?.job.config_snapshot?.reference_player
             ? `Referência de ${query.data.job.config_snapshot.reference_player.nick} selecionada, mas ainda sem amostras suficientes para este modo. Processe mais replays desse jogador e depois reprocese esta análise.`
             : "Esta análise não usou baseline. Escolha um jogador de referência nas Configurações e use Reprocessar para recalcular este replay."}

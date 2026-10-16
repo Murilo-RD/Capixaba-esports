@@ -130,6 +130,10 @@ export function evaluateReplay(
     unmatched: [],
     warnings: [],
   };
+  if (config?.baseline?.cohort === "GENERIC")
+    result.warnings.push(
+      "Avaliação provisória com parâmetros genéricos; não representa comparação com jogadores SSL ou uma amostra medida.",
+    );
   const mapped = new Set<string>();
   for (const participant of replay.players) {
     const matches = registered.filter(
@@ -180,7 +184,15 @@ export function evaluateReplay(
     )
       evaluation.reasons.push("Duração abaixo do mínimo de confiabilidade.");
     else {
-      evaluation.opponent = opponentAdjustment(replay, participant, config);
+      evaluation.opponent =
+        config.baseline.cohort === "GENERIC"
+          ? {
+              known: false,
+              multiplier: 1,
+              identities: [],
+              reason: "Referência genérica provisória, sem ajuste por rank dos adversários.",
+            }
+          : opponentAdjustment(replay, participant, config);
       for (const attribute of ATTRIBUTES) {
         const rule = config.attributes[attribute];
         let weight = 0,
@@ -204,7 +216,10 @@ export function evaluateReplay(
               metric: metric.metric,
               value,
               z: round(z),
-              message: `${metric.metric}: desvio desfavorável de ${round(Math.abs(z))} desvios-padrão em relação à ${config.baseline.cohort === "PLAYER" ? "referência do jogador" : "baseline SSL"}; revisar contexto com o coach.`,
+              message:
+                config.baseline.cohort === "GENERIC"
+                  ? `${metric.metric}: diferença desfavorável de ${round(Math.abs(z))} escalas em relação ao parâmetro genérico provisório; revisar com o coach.`
+                  : `${metric.metric}: desvio desfavorável de ${round(Math.abs(z))} desvios-padrão em relação à ${config.baseline.cohort === "PLAYER" ? "referência do jogador" : "baseline SSL"}; revisar contexto com o coach.`,
             });
         }
         evaluation.confidence[attribute] = round(weight);

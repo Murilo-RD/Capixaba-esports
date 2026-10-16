@@ -144,14 +144,19 @@ export function resolveScoringConfig(
   teamSize?: number,
 ): ScoringConfig {
   const mode = baselineMode(playlist, teamSize);
+  const generic =
+    config.baseline?.cohort === "GENERIC"
+      ? config.baseline
+      : (config.baselines?.find((entry) => entry.cohort === "GENERIC") ?? null);
   const baseline =
     config.baselines?.find((entry) => entry.playlist === mode) ??
     (!config.reference_player &&
     (config.baseline?.playlist === playlist || config.baseline?.playlist === mode)
       ? config.baseline
-      : null);
+      : null) ??
+    generic;
   if (
-    !config.reference_player ||
+    (!config.reference_player && baseline?.cohort !== "GENERIC") ||
     (!["ranked-duels", "unranked-duels"].includes(playlist) && !mode.endsWith(":1v1"))
   )
     return { ...config, baseline };

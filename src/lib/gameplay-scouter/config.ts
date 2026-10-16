@@ -32,7 +32,7 @@ const attributeRule = z
     (v) => new Set(v.metrics.map((m) => m.metric)).size === v.metrics.length,
     "Métricas repetidas.",
   );
-export const baselineSchema = z
+const measuredBaselineSchema = z
   .object({
     version: z.string().min(1).max(100),
     source: z.string().min(1).max(2000),
@@ -51,6 +51,28 @@ export const baselineSchema = z
     match_ids: z.array(z.string().min(1).max(200)).max(200).optional(),
   })
   .strict();
+const genericBaselineSchema = z
+  .object({
+    version: z.string().min(1).max(100),
+    source: z.string().min(1).max(2000),
+    cohort: z.literal("GENERIC"),
+    playlist: z.literal("*"),
+    min_samples: z.literal(0),
+    metrics: z.record(
+      z
+        .object({
+          mean: z.number().finite(),
+          stddev: z.number().finite().positive(),
+          samples: z.literal(0),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+export const baselineSchema = z.discriminatedUnion("cohort", [
+  measuredBaselineSchema,
+  genericBaselineSchema,
+]);
 export const referencePlayerSchema = z
   .object({
     player_id: z.string().uuid(),

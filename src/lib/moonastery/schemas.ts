@@ -243,6 +243,8 @@ export const actionSchemas = {
     })
     .strict(),
   "scoring.save": z.object({ config: z.record(z.unknown()) }).strict(),
+  "scoring.generic.enable": empty,
+  "scoring.generic.disable": empty,
   "scoring.reference.preview": z
     .object({ player_id: id, min_samples: z.number().int().min(2).max(100) })
     .strict(),
